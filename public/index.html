@@ -1,0 +1,113 @@
+<!doctype html>
+<html lang="pt-BR">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="theme-color" content="#101010" />
+    <meta name="description" content="FILTROX — uma seleção de histórias para depois do anoitecer. Cinema, música e ideias em movimento." />
+    <title>FILTROX — Cinema after dark</title>
+    <link rel="icon" href="/assets/filtrox-mark.svg" type="image/svg+xml" />
+    <link rel="stylesheet" href="/styles.css" />
+    <script src="/app.js" defer></script>
+  </head>
+  <body>
+    <div class="app-shell">
+      <aside class="sidebar" id="sidebar" aria-label="Navegação principal">
+        <a class="brand" href="#inicio" aria-label="FILTROX, início" data-nav="inicio">
+          <span class="brand-mark" aria-hidden="true"><i></i><i></i><i></i></span>
+          <span class="brand-word">FILTROX<small>CINEMA AFTER DARK</small></span>
+        </a>
+        <div class="sidebar-scroll">
+          <div class="nav-group">
+            <p class="nav-label">EXPLORAR</p>
+            <button class="nav-link is-active" data-nav="inicio"><span class="nav-icon icon-home" aria-hidden="true"></span>Início</button>
+            <button class="nav-link" data-nav="em-alta"><span class="nav-icon icon-trend" aria-hidden="true"></span>Em alta <span class="nav-badge">4</span></button>
+            <button class="nav-link" data-nav="recentes"><span class="nav-icon icon-clock" aria-hidden="true"></span>Adicionados</button>
+          </div>
+          <div class="nav-group">
+            <p class="nav-label">COLEÇÕES</p>
+            <button class="nav-link" data-filter="Curtas"><span class="nav-icon icon-spark" aria-hidden="true"></span>Curtas</button>
+            <button class="nav-link" data-filter="Documentário"><span class="nav-icon icon-eye" aria-hidden="true"></span>Documentários</button>
+            <button class="nav-link" data-filter="Música"><span class="nav-icon icon-note" aria-hidden="true"></span>Música &amp; arte</button>
+          </div>
+          <div class="nav-group nav-group-library">
+            <p class="nav-label">SUA BIBLIOTECA</p>
+            <button class="nav-link" data-nav="favoritos"><span class="nav-icon icon-heart" aria-hidden="true"></span>Minha lista<span class="saved-count" id="savedCount">0</span></button>
+          </div>
+          <div class="sidebar-note">
+            <span class="note-flare" aria-hidden="true">✳</span>
+            <p>Histórias que ficam<br />um pouco depois.</p>
+            <span>SELEÇÃO FILTROX Nº 08</span>
+          </div>
+        </div>
+        <div class="sidebar-bottom"><span class="status-dot"></span><span>Uma curadoria independente</span><span class="sidebar-version">v.08</span></div>
+      </aside>
+      <div class="mobile-scrim" id="mobileScrim"></div>
+
+      <main class="main-area" id="inicio">
+        <header class="topbar">
+          <button class="icon-button mobile-menu" id="menuToggle" aria-label="Abrir menu"><span class="hamburger"><i></i><i></i></span></button>
+          <div class="topbar-crumb"><span>FILTROX</span><b>/</b><strong id="crumbTitle">DESCOBRIR</strong></div>
+          <label class="search-box" for="searchInput"><span class="search-icon" aria-hidden="true"></span><input id="searchInput" type="search" placeholder="Buscar títulos, temas…" autocomplete="off" /><kbd>/</kbd></label>
+          <button class="profile-button" aria-label="Perfil de demonstração" title="Perfil de demonstração">V</button>
+        </header>
+
+        <div class="content-wrap">
+          <section class="hero" aria-labelledby="heroTitle">
+            <div class="hero-backdrop" aria-hidden="true"><div class="hero-glow"></div><div class="hero-disc"></div><div class="hero-line hero-line-one"></div><div class="hero-line hero-line-two"></div><span class="hero-vertical">FILTROX ORIGINALS&nbsp;&nbsp; — &nbsp;&nbsp; Nº 008</span><span class="hero-coordinate">23° 33' S<br />46° 38' W</span><div class="hero-orbit"></div><div class="hero-silhouette"></div><div class="hero-spark hero-spark-a"></div><div class="hero-spark hero-spark-b"></div></div>
+            <div class="hero-copy">
+              <div class="eyebrow"><span class="eyebrow-mark"></span> UMA HISTÓRIA ORIGINAL <span class="eyebrow-rule"></span> 08 MIN</div>
+              <h1 id="heroTitle">A cidade<br />não <em>dorme.</em></h1>
+              <p class="hero-description">Quando as luzes baixam, São Paulo revela outra frequência. Uma noite, três encontros e tudo o que quase passou despercebido.</p>
+              <div class="hero-meta"><span class="rating-mark">F</span><span>FILTROX ORIGINAL</span><i></i><span>CURTA</span><i></i><span>2026</span><i></i><span>12 MIN</span></div>
+              <div class="hero-actions"><button class="button button-primary" id="heroPlay"><span class="play-triangle" aria-hidden="true"></span> Assistir prévia</button><button class="button button-glass" id="heroDetails"><span class="info-ring" aria-hidden="true">i</span> Saiba mais</button></div>
+              <div class="hero-serial"><span></span> UMA SÉRIE DE PEQUENOS ACASOS</div>
+            </div>
+            <div class="hero-index"><b>01</b><span>/</span>04</div>
+            <div class="hero-bottom-line"><span>VISTO POR 2.4 MIL PESSOAS</span><span class="hero-bottom-dots"><i></i><i></i><i></i><i class="current"></i></span><span>01 — 04</span></div>
+          </section>
+
+          <section class="catalog-section" aria-labelledby="sectionTitle">
+            <div class="section-heading">
+              <div><p class="section-kicker" id="sectionKicker">A ESCOLHA DA NOITE <span>·</span> 16 NOV 2026</p><h2 id="sectionTitle">Descubra algo <em>novo.</em></h2></div>
+              <button class="text-button" id="viewAll">Ver coleção completa <span aria-hidden="true">↗</span></button>
+            </div>
+            <div class="filter-row" role="group" aria-label="Filtrar por categoria" id="filterRow">
+              <button class="filter-chip is-selected" data-category="Todos">Tudo <span>12</span></button>
+              <button class="filter-chip" data-category="Curtas">Curtas</button>
+              <button class="filter-chip" data-category="Documentário">Documentários</button>
+              <button class="filter-chip" data-category="Música">Música &amp; arte</button>
+              <button class="filter-chip" data-category="Atmosfera">Atmosfera</button>
+              <div class="sort-control"><span>ORDENAR</span><select id="sortSelect" aria-label="Ordenar vídeos"><option value="featured">Em destaque</option><option value="newest">Mais recentes</option><option value="az">A—Z</option></select><span class="sort-chevron" aria-hidden="true">⌄</span></div>
+            </div>
+            <div class="search-summary" id="searchSummary" aria-live="polite"></div>
+            <div class="video-grid" id="videoGrid" aria-live="polite"></div>
+            <div class="empty-state" id="emptyState" hidden><span class="empty-star">✳</span><h3>Nada por aqui… ainda.</h3><p>Tente outra busca ou explore uma coleção diferente.</p><button class="button button-glass" id="clearFilters">Limpar filtros</button></div>
+            <button class="load-more" id="loadMore">CARREGAR MAIS <span aria-hidden="true">＋</span></button>
+          </section>
+          <footer class="footer"><a class="footer-mark" href="#inicio">FILTROX</a><span>Histórias em movimento, feitas para ver com calma.</span><span class="footer-right">© FILTROX 2026&nbsp;&nbsp; · &nbsp;&nbsp;MADE AFTER DARK</span></footer>
+        </div>
+      </main>
+    </div>
+
+    <div class="modal-backdrop" id="detailBackdrop" hidden>
+      <section class="detail-modal" role="dialog" aria-modal="true" aria-labelledby="modalTitle">
+        <button class="modal-close" id="closeModal" aria-label="Fechar detalhes">×</button>
+        <div class="modal-art" id="modalArt"><span class="modal-art-label">FILTROX ORIGINAL</span><span class="modal-art-index">Nº 008</span></div>
+        <div class="modal-content">
+          <div class="modal-kicker" id="modalKicker">CURTA ORIGINAL</div>
+          <h2 id="modalTitle">A cidade não dorme.</h2>
+          <div class="modal-meta" id="modalMeta"></div>
+          <p class="modal-description" id="modalDescription"></p>
+          <div class="modal-tags" id="modalTags"></div>
+          <div class="modal-actions"><button class="button button-primary" id="modalPlay"><span class="play-triangle" aria-hidden="true"></span> Assistir prévia</button><button class="button button-glass" id="modalSave"><span class="save-icon">＋</span> Minha lista</button></div>
+          <div class="player-wrap" id="playerWrap" hidden>
+            <div class="player-screen"><canvas id="previewCanvas" width="960" height="540" aria-label="Prévia visual original, abstrata e sem áudio"></canvas><div class="player-stamp">PRÉVIA VISUAL · ORIGINAL FILTROX · SEM ÁUDIO</div><button class="player-center" id="centerPlay" aria-label="Reproduzir prévia"><span class="play-triangle"></span></button><div class="player-controls"><button class="player-toggle" id="playerToggle" aria-label="Reproduzir">▶</button><span class="player-time" id="playerTime">00:00 / 00:24</span><input type="range" id="playerSeek" min="0" max="24" value="0" aria-label="Posição da prévia"><button class="player-fullscreen" id="playerFullscreen" aria-label="Tela cheia">⛶</button></div></div>
+            </div>
+          <p class="modal-note">Uma prévia original, segura e não explícita, criada para este catálogo.</p>
+        </div>
+      </section>
+    </div>
+    <div class="toast" id="toast" role="status" aria-live="polite"></div>
+  </body>
+</html>

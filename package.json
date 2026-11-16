@@ -1,0 +1,9 @@
+{
+  "name": "filtrox-cinema-after-dark",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Catálogo audiovisual original da FILTROX",
+  "scripts": {
+    "start": "node server.js"
+  }
+}
