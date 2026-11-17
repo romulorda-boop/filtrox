@@ -1,5 +1,5 @@
 import { searchSepiaVideos } from './api.js';
-import { collectTagFacets, filterVideosByTags, formatCount, formatDuration, formatPublishedDate, getEligibleVideos, getEmbedUrl, getVideoHost } from './filters.js';
+import { collectTagFacets, filterVideosByMetadata, filterVideosByTags, formatCount, formatDuration, formatPublishedDate, formatQuality, getEligibleVideos, getEmbedUrl, getMaxResolution, getVideoHost } from './filters.js';
 
 const $ = (selector, root = document) => root.querySelector(selector);
 const state = {
@@ -12,6 +12,9 @@ const state = {
   excluded: [],
   tagNeedle: '',
   showAllTags: false,
+  durationFilter: 'all',
+  qualityFilter: 'all',
+  allowThumbnails: false,
   loading: false,
   loadingMore: false,
   error: '',
@@ -24,6 +27,7 @@ const ageGate = $('#ageGate');
 const searchApp = $('#searchApp');
 const queryInput = $('#queryInput');
 const consentInput = $('#searchConsent');
+const thumbnailConsent = $('#thumbnailConsent');
 const form = $('#searchForm');
 const submitButton = $('#searchButton');
 const filterPanel = $('#filterPanel');
@@ -32,12 +36,28 @@ const resultState = $('#resultState');
 const resultCount = $('#resultCount');
 const loadMoreWrap = $('#loadMoreWrap');
 const loadMoreButton = $('#loadMoreButton');
+const clearAllFiltersButton = $('#clearAllFilters');
 
 $('#confirmAge').addEventListener('click', () => {
   state.ageConfirmed = true;
   ageGate.hidden = true;
   searchApp.hidden = false;
   queryInput.focus();
+});
+
+thumbnailConsent.addEventListener('change', () => {
+  state.allowThumbnails = thumbnailConsent.checked;
+  render();
+});
+
+clearAllFiltersButton.addEventListener('click', () => {
+  state.included = [];
+  state.excluded = [];
+  state.tagNeedle = '';
+  state.showAllTags = false;
+  state.durationFilter = 'all';
+  state.qualityFilter = 'all';
+  render();
 });
 
 function element(tag, className, text) {
@@ -70,6 +90,8 @@ async function requestPage(query, start, append) {
     state.excluded = [];
     state.tagNeedle = '';
     state.showAllTags = false;
+    state.durationFilter = 'all';
+    state.qualityFilter = 'all';
     state.error = '';
     state.pageError = '';
     state.loading = true;
@@ -149,6 +171,34 @@ function renderFilters(eligible) {
 
   const intro = element('p', 'filter-help', 'Tags dos resultados elegíveis carregados. Incluir aceita qualquer tag selecionada; Excluir remove vídeos com qualquer tag selecionada. Os dois grupos são aplicados juntos, sem nova chamada à API.');
   filterPanel.append(intro);
+
+  const advanced = element('div', 'advanced-filters');
+  advanced.append(element('h3', 'advanced-filters-title', 'Filtros avançados'));
+  const durationLabel = element('label', 'advanced-filter-label', 'Duração');
+  const durationSelect = element('select', 'advanced-filter-select');
+  durationSelect.setAttribute('aria-label', 'Filtrar por duração');
+  for (const [value, label] of [['all', 'Qualquer duração'], ['under-5', 'Menos de 5 min'], ['5-to-20', '5–20 min'], ['over-20', 'Mais de 20 min']]) {
+    const option = element('option', '', label); option.value = value; durationSelect.append(option);
+  }
+  durationSelect.value = state.durationFilter;
+  durationSelect.addEventListener('change', () => { state.durationFilter = durationSelect.value; render(); });
+  durationLabel.append(durationSelect);
+
+  const qualityLabel = element('label', 'advanced-filter-label', 'Qualidade');
+  const qualitySelect = element('select', 'advanced-filter-select');
+  qualitySelect.setAttribute('aria-label', 'Filtrar por resolução');
+  for (const [value, label] of [['all', 'Todas'], ['hd', 'HD · 720p ou superior'], ['1080p', 'Full HD · 1080p ou superior'], ['sd', 'SD · abaixo de 720p'], ['unknown', 'Não informada']]) {
+    const option = element('option', '', label); option.value = value; qualitySelect.append(option);
+  }
+  const hasQualityData = eligible.some((video) => getMaxResolution(video) !== undefined);
+  qualitySelect.value = state.qualityFilter;
+  qualitySelect.disabled = !hasQualityData;
+  qualitySelect.addEventListener('change', () => { state.qualityFilter = qualitySelect.value; render(); });
+  qualityLabel.append(qualitySelect);
+  advanced.append(durationLabel, qualityLabel);
+  if (!hasQualityData) advanced.append(element('p', 'quality-unavailable', 'A API não informou resoluções para os vídeos carregados.'));
+  filterPanel.append(advanced);
+
   const selected = element('div', 'selected-groups');
   const includeLine = element('p', 'selected-line');
   includeLine.append(element('strong', 'include-label', 'INCLUIR'), document.createTextNode(state.included.length ? state.included.join(', ') : 'nenhuma'));
@@ -157,7 +207,7 @@ function renderFilters(eligible) {
   selected.append(includeLine, excludeLine);
   filterPanel.append(selected);
 
-  const clearButton = element('button', 'text-button clear-tags', 'Limpar filtros');
+  const clearButton = element('button', 'text-button clear-tags', 'Limpar tags');
   clearButton.type = 'button';
   clearButton.disabled = !state.included.length && !state.excluded.length;
   clearButton.addEventListener('click', () => { state.included = []; state.excluded = []; render(); });
@@ -180,7 +230,7 @@ function renderFilters(eligible) {
   filterPanel.append(tagSearchLabel, tagSearch);
 
   const matching = facets.filter((item) => item.name.toLocaleLowerCase('pt-BR').includes(state.tagNeedle.trim().toLocaleLowerCase('pt-BR')));
-  const visible = state.showAllTags || state.tagNeedle ? matching : matching.slice(0, 10);
+  const visible = state.showAllTags || state.tagNeedle.trim() ? matching : matching.slice(0, 10);
   const list = element('div', 'tag-list');
   list.setAttribute('role', 'list');
   list.setAttribute('aria-label', 'Tags dinâmicas dos resultados');
@@ -201,7 +251,7 @@ function renderFilters(eligible) {
     list.append(row);
   }
   filterPanel.append(list);
-  if (!state.tagNeedle && facets.length > 10) {
+  if (!state.tagNeedle.trim() && facets.length > 10) {
     const expand = element('button', 'text-button expand-tags', state.showAllTags ? 'Mostrar top 10' : `Ver todas as ${facets.length} tags`);
     expand.type = 'button'; expand.setAttribute('aria-expanded', String(state.showAllTags)); expand.addEventListener('click', () => { state.showAllTags = !state.showAllTags; render(); });
     filterPanel.append(expand);
@@ -249,7 +299,22 @@ function makeVideoCard(video) {
   const embedUrl = getEmbedUrl(video);
   const stage = element('div', 'video-stage');
   const poster = element('div', 'video-poster');
+  if (state.allowThumbnails && video.thumbnailUrl) {
+    const thumbnail = document.createElement('img');
+    thumbnail.className = 'video-thumbnail';
+    thumbnail.alt = '';
+    thumbnail.loading = 'lazy';
+    thumbnail.decoding = 'async';
+    thumbnail.referrerPolicy = 'no-referrer';
+    poster.classList.add('has-thumbnail');
+    thumbnail.addEventListener('error', () => { thumbnail.remove(); poster.classList.remove('has-thumbnail'); }, { once: true });
+    thumbnail.src = video.thumbnailUrl;
+    poster.append(thumbnail);
+  }
   poster.append(element('span', 'poster-mark', 'F'));
+  const wordmark = element('span', 'poster-brand');
+  wordmark.append(document.createTextNode('FILTRO'), element('span', 'poster-brand-accent', 'X'));
+  poster.append(wordmark);
   poster.append(element('span', 'poster-category', 'PEERTUBE · PÚBLICO · 18+'));
   poster.append(element('span', 'poster-title', video.name));
   const duration = formatDuration(video.duration);
@@ -275,6 +340,9 @@ function makeVideoCard(video) {
   body.append(element('p', 'video-source', identity ? `${identity} · ${host}` : host));
   const metadata = element('div', 'video-meta');
   addMetaLine(metadata, 'Duração', duration);
+  metadata.append(element('span', 'origin-badge', `ORIGEM · ${host}`));
+  const resolution = getMaxResolution(video);
+  if (resolution) metadata.append(element('span', 'quality-badge', formatQuality(resolution)));
   addMetaLine(metadata, 'Visualizações', formatCount(video.views));
   addMetaLine(metadata, 'Curtidas', formatCount(video.likes));
   addMetaLine(metadata, 'Publicado', formatPublishedDate(video.publishedAt || video.createdAt));
@@ -295,7 +363,9 @@ function makeVideoCard(video) {
   sourceLink.referrerPolicy = 'no-referrer';
   actions.append(sourceLink);
   body.append(actions);
-  body.append(element('p', 'contact-note', embedUrl ? 'O host só é contatado ao carregar o player ou abrir o link original.' : 'O player seguro não está disponível; o link original abre a instância do vídeo.'));
+  body.append(element('p', 'contact-note', state.allowThumbnails && video.thumbnailUrl
+    ? 'A miniatura externa é carregada sob demanda e contata a origem; o player e o link também contatam esse host.'
+    : 'Sem miniatura externa. O host só é contatado ao carregar o player ou abrir o link original.'));
   card.append(body);
   return card;
 }
@@ -342,13 +412,18 @@ function renderResults(eligible, visible) {
     resultState.className = 'state-card';
     resultState.textContent = '';
   }
-  resultCount.textContent = state.submittedQuery && !state.loading ? `${visible.length} exibidos · ${eligible.length} elegíveis carregados` : '';
+  resultCount.textContent = state.submittedQuery && !state.loading
+    ? `Mostrando ${visible.length} de ${eligible.length} vídeos elegíveis carregados · ${formatCount(state.total) || 0} no índice`
+    : '';
+  const filtersActive = state.included.length > 0 || state.excluded.length > 0 || state.durationFilter !== 'all' || state.qualityFilter !== 'all';
+  clearAllFiltersButton.hidden = !filtersActive;
   $('#resultsTitle').textContent = state.submittedQuery ? `Busca: “${state.submittedQuery}”` : 'Resultados da busca';
 }
 
 function render() {
   const eligible = getEligibleVideos(state.videos);
-  const visible = filterVideosByTags(eligible, state.included, state.excluded);
+  const tagsFiltered = filterVideosByTags(eligible, state.included, state.excluded);
+  const visible = filterVideosByMetadata(tagsFiltered, { duration: state.durationFilter, quality: state.qualityFilter });
   renderFilters(eligible);
   renderResults(eligible, visible);
   submitButton.disabled = state.loading;

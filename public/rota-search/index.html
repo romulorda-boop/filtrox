@@ -47,7 +47,8 @@
             <input id="queryInput" type="search" maxlength="200" autocomplete="off" placeholder="Digite um termo de busca…" />
             <button class="button button-primary" type="submit" id="searchButton">Buscar vídeos</button>
             <label class="consent-check" for="searchConsent"><input id="searchConsent" type="checkbox" /><span>Autorizo enviar este termo ao <strong>SepiaSearch</strong> para consultar vídeos.</span></label>
-            <p class="privacy-inline">A consulta não é enviada até você marcar a autorização e pressionar “Buscar vídeos”. Ela fica somente na memória desta página.</p>
+            <label class="consent-check thumbnail-consent" for="thumbnailConsent"><input id="thumbnailConsent" type="checkbox" /><span>Carregar miniaturas externas (opcional). Ao aparecerem na tela, elas contatam a instância PeerTube de origem.</span></label>
+            <p class="privacy-inline">A consulta não é enviada até você marcar a autorização e pressionar “Buscar vídeos”. Busca e filtros ficam na memória desta página; miniaturas externas são opcionais e carregadas sob demanda.</p>
             <p class="inline-message" id="searchError" role="alert" hidden></p>
           </form>
         </section>
@@ -62,7 +63,7 @@
           <section class="results-panel" aria-labelledby="resultsTitle">
             <div class="results-header">
               <div><p class="eyebrow">ÍNDICE SEPIASEARCH</p><h2 id="resultsTitle">Resultados da busca</h2></div>
-              <p class="result-count" id="resultCount" role="status"></p>
+              <div class="results-tools"><p class="result-count" id="resultCount" role="status"></p><button class="clear-all-button" id="clearAllFilters" type="button" hidden>Limpar todos os filtros</button></div>
             </div>
             <p class="filter-summary" id="filterSummary" hidden></p>
             <div class="state-card" id="resultState" role="status"></div>
@@ -80,7 +81,7 @@
           <div><p class="eyebrow">ORIGEM E PRIVACIDADE</p><h2 id="privacyTitle">Você decide quando conectar.</h2>
             <ul>
               <li>O termo só é enviado ao SepiaSearch após sua autorização explícita e o envio do formulário; ele vai no parâmetro <code>search</code> da requisição GET. A URL exibida pela página não muda, e busca, filtros e resultados não são gravados em cookies nem no armazenamento local.</li>
-              <li>Não há analytics nesta página. Abrir o player ou o link original contata a instância PeerTube que hospeda aquele vídeo.</li>
+              <li>Não há analytics. Se você autorizar miniaturas, elas carregam sob demanda quando os cards se aproximam da tela e contatam o host da imagem; abrir o player ou o link original também contata a instância PeerTube.</li>
               <li>O player incorporado só é carregado após clicar em “Reproduzir aqui”, sem autoplay. Se falhar, use o link para abrir o PeerTube original.</li>
             </ul>
           </div>

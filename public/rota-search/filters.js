@@ -37,6 +37,34 @@ export function filterVideosByTags(videos, includedTags, excludedTags) {
   });
 }
 
+export function getMaxResolution(video) {
+  const heights = Array.isArray(video.resolutionHeights) ? video.resolutionHeights.filter((height) => Number.isFinite(height) && height > 0) : [];
+  return heights.length ? Math.max(...heights) : undefined;
+}
+
+export function filterVideosByMetadata(videos, { duration = 'all', quality = 'all' } = {}) {
+  return videos.filter((video) => {
+    const seconds = Number(video.duration);
+    if (duration === 'under-5' && !(seconds >= 0 && seconds < 300)) return false;
+    if (duration === '5-to-20' && !(seconds >= 300 && seconds <= 1200)) return false;
+    if (duration === 'over-20' && !(seconds > 1200)) return false;
+    const resolution = getMaxResolution(video);
+    if (quality === 'hd' && !(resolution >= 720)) return false;
+    if (quality === '1080p' && !(resolution >= 1080)) return false;
+    if (quality === 'sd' && !(resolution > 0 && resolution < 720)) return false;
+    if (quality === 'unknown' && resolution !== undefined) return false;
+    return true;
+  });
+}
+
+export function formatQuality(height) {
+  if (!Number.isFinite(height) || height <= 0) return undefined;
+  if (height >= 2160) return '4K';
+  if (height >= 1080) return '1080P';
+  if (height >= 720) return `${Math.round(height)}P HD`;
+  return `${Math.round(height)}P`;
+}
+
 export function getVideoHost(video) {
   try { return new URL(video.url).hostname; } catch { return 'instância desconhecida'; }
 }
@@ -66,7 +94,9 @@ export function formatDuration(seconds) {
   const hours = Math.floor(total / 3600);
   const minutes = Math.floor((total % 3600) / 60);
   const remaining = total % 60;
-  return hours ? `${hours}:${String(minutes).padStart(2, '0')}:${String(remaining).padStart(2, '0')}` : `${minutes}:${String(remaining).padStart(2, '0')}`;
+  return hours
+    ? `${String(hours).padStart(2, '0')}:${String(minutes).padStart(2, '0')}:${String(remaining).padStart(2, '0')}`
+    : `${String(minutes).padStart(2, '0')}:${String(remaining).padStart(2, '0')}`;
 }
 
 export function formatCount(value) {
