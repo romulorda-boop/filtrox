@@ -11,6 +11,13 @@
   - Exibir filtros para refinar a grade por categorias ou atributos relevantes.
   - Evidência: seções de descobrir, em alta, adicionados e minha lista; busca e filtros de categoria/ordenação funcionais.
 
+- [x] **Catálogo carregado de CSV no navegador**
+  - Criar a pasta `data` na raiz e salvar nela o CSV dos vídeos (`/data/videos.csv`).
+  - Incluir PapaParse 5.4.1 via CDN no `index.html`.
+  - Carregar o CSV automaticamente ao abrir a página usando `Papa.parse` com `download: true` e `header: true`, alimentando a busca e os filtros.
+  - Verificar que os dados são lidos corretamente na interface e no console, e fazer commit e push para `Colab3`.
+  - Evidência: 12 linhas CSV válidas; navegador confirmou PapaParse ativo, 12 vídeos em memória e 12 cards; busca “Maré” retorna 1 resultado e o filtro Documentário retorna 4.
+
 - [x] **Grade e interações dos cards**
   - Exibir uma grade responsiva de cards de vídeo com imagem, título e metadados essenciais.
   - Implementar estados interativos de cards e controles, incluindo hover, foco e seleção.

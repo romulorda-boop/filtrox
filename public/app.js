@@ -1,17 +1,4 @@
-const videos = [
-  {id:'cidade',title:'A cidade não dorme',subtitle:'São Paulo, depois das 23h.',creator:'FILTROX Originals',category:'Curtas',duration:12,rating:'9,2',year:2026,description:'Quando as luzes baixam, São Paulo revela outra frequência. Uma noite, três encontros e tudo o que quase passou despercebido. Um curta original sobre os pequenos acasos que fazem uma cidade imensa parecer íntima.',tags:['Noturno','Cidade','Encontros'],art:'art-1',badge:'ESTREIA'},
-  {id:'ultima-luz',title:'A última luz do verão',subtitle:'Uma estação em suspenso.',creator:'Lia Monteiro',category:'Documentário',duration:18,rating:'8,9',year:2026,description:'Na última semana antes da mudança, uma fotógrafa revisita a praia onde passou todos os verões da infância. Um retrato delicado sobre tempo, memória e despedidas que não parecem despedidas.',tags:['Memória','Viagem','Retrato'],art:'art-2',badge:'NOVO'},
-  {id:'frequencia',title:'Frequência baixa',subtitle:'Música para ouvir de perto.',creator:'Estúdio Quase',category:'Música',duration:9,rating:'9,5',year:2026,description:'Dentro de um estúdio pequeno, músicos reinventam canções com o que têm à mão. Um convite para chegar perto do processo e escutar os espaços entre as notas.',tags:['Música','Estúdio','Ao vivo'],art:'art-3',badge:'SESSÃO'},
-  {id:'entre-linhas',title:'Entre linhas',subtitle:'O que os muros escolhem contar.',creator:'Caio Vidal',category:'Documentário',duration:22,rating:'8,7',year:2025,description:'Uma caminhada pela cidade com artistas que transformam paredes em arquivo afetivo. Conversas, tintas e histórias reunidas num ensaio visual sobre espaço compartilhado.',tags:['Arte','Cidade','Cultura'],art:'art-4',badge:'DOC'},
-  {id:'quarto-andar',title:'O quarto andar',subtitle:'Uma janela, muitas vidas.',creator:'Bia Salles',category:'Curtas',duration:14,rating:'9,0',year:2025,description:'Durante uma queda de energia, vizinhos que nunca se encontraram começam a conversar pelas janelas. Uma pequena comédia sobre distância, gentileza e a vida acontecendo ao redor.',tags:['Ficção','Vizinhança','Humor'],art:'art-5',badge:'CURTA'},
-  {id:'cor-laranja',title:'A cor do silêncio',subtitle:'Um estudo em luz natural.',creator:'Nina Prado',category:'Atmosfera',duration:7,rating:'8,8',year:2026,description:'Um ensaio sensorial, sem pressa e sem palavras: luz de fim de tarde atravessando os espaços de um apartamento que guarda sinais de quem viveu ali.',tags:['Ensaio','Luz','Sem diálogos'],art:'art-6',badge:'ENSAIO'},
-  {id:'mare-cheia',title:'Maré cheia',subtitle:'O litoral contado por quem fica.',creator:'André Diniz',category:'Documentário',duration:26,rating:'9,1',year:2025,description:'Na vila costeira de Pontal, quatro gerações acompanham a mudança do mar e das rotinas. Um documentário de observação sobre trabalho, pertencimento e o futuro da costa.',tags:['Litoral','Comunidade','Ambiente'],art:'art-7',badge:'DOC'},
-  {id:'a-pausa',title:'A pausa entre nós',subtitle:'Uma conversa que quase não começa.',creator:'Marina Okada',category:'Curtas',duration:11,rating:'8,6',year:2026,description:'Duas pessoas se reencontram por acaso depois de anos. Nada de grandes explicações: só um café, uma rua familiar e a chance de dizer o que ficou guardado.',tags:['Encontro','Memória','Ficção'],art:'art-8',badge:'NOVO'},
-  {id:'objeto',title:'Objeto encontrado',subtitle:'Coisas que viajam de mão em mão.',creator:'Arquivo Comum',category:'Documentário',duration:16,rating:'9,3',year:2024,description:'Uma câmera analógica passa por diferentes pessoas ao longo de uma semana. Cada encontro acrescenta uma imagem e uma história ao rolo que ninguém planejou revelar.',tags:['Objetos','Retrato','Arquivo'],art:'art-9',badge:'CURADORIA'},
-  {id:'lados-b',title:'Lados B: ensaio 03',subtitle:'Improviso em três movimentos.',creator:'Casa Sonora',category:'Música',duration:13,rating:'9,4',year:2026,description:'Três músicos entram em sala sem repertório e criam uma peça a partir dos sons da rua. Acompanhe um encontro espontâneo onde o erro vira caminho.',tags:['Música','Improviso','Estúdio'],art:'art-10',badge:'SESSÃO'},
-  {id:'linha-noturna',title:'Linha noturna',subtitle:'Um ônibus, seis histórias.',creator:'Rafaela Luz',category:'Curtas',duration:19,rating:'8,9',year:2025,description:'No último ônibus da linha, passageiros de mundos distintos dividem o mesmo trajeto. Um mosaico de conversas, silêncios e destinos cruzados durante uma madrugada.',tags:['Noite','Cidade','Ficção'],art:'art-11',badge:'CURTA'},
-  {id:'jardim',title:'Jardim suspenso',subtitle:'Uma cidade vista de cima.',creator:'Ivo Fernandes',category:'Atmosfera',duration:8,rating:'8,5',year:2026,description:'No alto de um edifício, uma moradora cultiva um jardim improvável. Um breve retrato contemplativo de quem cria um lugar próprio no meio da pressa.',tags:['Cidade','Natureza','Ensaio'],art:'art-12',badge:'ENSAIO'}
-];
+let videos = [];
 
 const state = {category:'Todos',nav:'inicio',query:'',sort:'featured',favorites:new Set(readFavorites()),showAll:false,current:null,playing:false,elapsed:0,raf:0,toastTimer:0};
 const $ = (selector, root=document) => root.querySelector(selector);
@@ -24,6 +11,47 @@ const duration = 24;
 
 function readFavorites(){try{return JSON.parse(localStorage.getItem('filtrox-favorites')||localStorage.getItem('velvet-favorites')||'[]')}catch{return []}}
 function saveFavorites(){try{localStorage.setItem('filtrox-favorites',JSON.stringify([...state.favorites]))}catch{}}
+function normalizeVideo(row){
+  return {
+    ...row,
+    id:String(row.id||'').trim(),
+    title:String(row.title||'').trim(),
+    subtitle:String(row.subtitle||'').trim(),
+    creator:String(row.creator||'').trim(),
+    category:String(row.category||'').trim(),
+    duration:Number(row.duration),
+    rating:String(row.rating||'').trim(),
+    year:Number(row.year),
+    description:String(row.description||'').trim(),
+    tags:String(row.tags||'').split('|').map(tag=>tag.trim()).filter(Boolean),
+    art:String(row.art||'').trim(),
+    badge:String(row.badge||'').trim()
+  };
+}
+function showCatalogLoadError(error){
+  console.error('[FILTROX] Falha ao carregar /data/videos.csv:',error);
+  $('#searchSummary').textContent='Não foi possível carregar o catálogo de vídeos.';
+  $('#emptyState').hidden=false;
+  $('#loadMore').hidden=true;
+}
+function loadVideos(){
+  if(!window.Papa){showCatalogLoadError(new Error('PapaParse não foi carregado.'));return}
+  window.Papa.parse('/data/videos.csv',{
+    download:true,
+    header:true,
+    skipEmptyLines:'greedy',
+    complete(results){
+      const rows=results.data.map(normalizeVideo);
+      videos=rows.filter(video=>video.id&&video.title&&video.category&&Number.isFinite(video.duration)&&Number.isFinite(video.year));
+      if(results.errors.length)console.warn('[FILTROX] Avisos ao analisar o CSV:',results.errors);
+      if(videos.length!==rows.length)console.warn(`[FILTROX] ${rows.length-videos.length} linha(s) inválida(s) ignorada(s).`);
+      if(!videos.length){showCatalogLoadError(new Error('O CSV não contém vídeos válidos.'));return}
+      console.log(`[FILTROX] ${videos.length} vídeos carregados de /data/videos.csv.`);
+      render();
+    },
+    error(error){showCatalogLoadError(error)}
+  });
+}
 function visibleVideos(){
   let items=[...videos];
   if(state.nav==='favoritos') items=items.filter(v=>state.favorites.has(v.id));
@@ -134,4 +162,4 @@ $('#menuToggle').addEventListener('click',()=>{$('#sidebar').classList.toggle('i
 $('#mobileScrim').addEventListener('click',closeMobileNav);
 document.addEventListener('keydown',event=>{if(event.key==='Escape'&&!backdrop.hidden)closeDetails();if(event.key==='/'&&!/INPUT|TEXTAREA|SELECT/.test(document.activeElement.tagName)){event.preventDefault();$('#searchInput').focus()}if((event.metaKey||event.ctrlKey)&&event.key.toLowerCase()==='k'){event.preventDefault();$('#searchInput').focus()}});
 
-render();drawPreview(0);
+loadVideos();drawPreview(0);

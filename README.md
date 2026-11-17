@@ -15,6 +15,7 @@ Abra `http://localhost:3000` no navegador. Para usar outra porta, defina a vari�
 ## Estrutura
 
 - `public/` — página, estilos, interações, ícone e manifesto de rotas.
+- `data/videos.csv` — registros do catálogo carregados no navegador via PapaParse.
 - `server.js` — servidor estático Node.js.
 - `package.json` — comando `npm start`.
 - `app.config.ts` — metadados da marca no projeto Manus.
