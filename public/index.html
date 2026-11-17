@@ -3,81 +3,31 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <meta name="theme-color" content="#090909" />
-    <meta name="robots" content="noindex, nofollow" />
-    <meta name="description" content="FILTROX — busca federada de vídeos PeerTube públicos sinalizados como conteúdo adulto, com consulta sob consentimento e filtros locais." />
+    <meta name="theme-color" content="#f5f5f0" />
+    <meta name="description" content="FILTROX — busca limpa e descoberta de vídeos." />
     <link rel="icon" href="/assets/filtrox-mark.svg" type="image/svg+xml" />
-    <title>FILTROX — Busca federada 18+</title>
-    <link rel="stylesheet" href="/rota-search/styles.css" />
-    <script type="module" src="/rota-search/app.js"></script>
+    <link rel="stylesheet" href="/home.css" />
+    <script src="/home.js" defer></script>
+    <title>FILTROX</title>
   </head>
   <body>
-    <div class="age-gate" id="ageGate">
-      <section class="age-card" role="dialog" aria-modal="true" aria-labelledby="ageTitle">
-        <a class="brand" href="/" aria-label="FILTROX, início"><img class="brand-icon" src="/assets/filtrox-mark.svg" alt="" /><span>FILTRO<span class="brand-accent">X</span></span></a>
-        <span class="age-pill">18+</span>
-        <p class="eyebrow">BUSCA FEDERADA · PEERTUBE</p>
-        <h1 id="ageTitle">Conteúdo adulto</h1>
-        <p>Este portal apresenta buscas de vídeos sinalizados como conteúdo sexual explícito. Continue somente se tiver 18 anos ou mais e se isso for legal na sua região.</p>
-        <button class="button button-primary" id="confirmAge" type="button">Tenho 18 anos ou mais — continuar</button>
-        <p class="age-footnote">A confirmação vale apenas para esta aba e não é salva.</p>
-        <a class="leave-link" href="/catalog/">Voltar ao catálogo FILTROX</a>
-      </section>
-    </div>
+    <div class="home-shell">
+      <aside class="sidebar" aria-label="Filtros">
+        <nav class="filter-list" aria-label="Ordenar vídeos">
+          <button class="filter-button is-active" type="button" data-filter="recent" aria-pressed="true">Mais recente</button>
+          <button class="filter-button" type="button" data-filter="watched" aria-pressed="false">Mais assistido</button>
+          <button class="filter-button" type="button" data-filter="commented" aria-pressed="false">Mais comentado</button>
+          <button class="filter-button" type="button" data-filter="rated" aria-pressed="false">Melhor avaliado</button>
+        </nav>
+      </aside>
 
-    <div class="search-app" id="searchApp" hidden>
-        <header class="topbar">
-          <a class="brand" href="/" aria-label="FILTROX, início"><img class="brand-icon" src="/assets/filtrox-mark.svg" alt="" /><span>FILTRO<span class="brand-accent">X</span></span></a>
-          <nav class="top-nav" aria-label="Navegação principal">
-            <a href="#search">Buscar</a>
-            <a href="#filterPanel">Tags</a>
-            <a href="#results">Vídeos</a>
-          </nav>
-        <span class="topbar-label"><i></i> SEPIASEARCH <b>18+</b></span>
-      </header>
-
-      <main class="page-wrap">
-        <section class="search-intro" id="search" aria-labelledby="pageTitle">
-          <p class="eyebrow"><span class="eyebrow-mark"></span> BUSCA FEDERADA <span class="eyebrow-separator">/</span> CONTEÚDO 18+</p>
-          <h1 id="pageTitle">Buscar vídeos</h1>
-          <p class="intro-copy">Pesquise no índice SepiaSearch. As tags relacionadas aparecem somente a partir dos resultados carregados e refinam a lista localmente.</p>
-          <form id="searchForm" class="search-form" novalidate>
-            <label class="sr-only" for="queryInput">Termo de busca</label>
-            <span class="search-icon" aria-hidden="true"></span>
-            <input id="queryInput" type="search" maxlength="200" autocomplete="off" placeholder="Ex.: ruiva, redhead…" />
-            <button class="button button-primary" type="submit" id="searchButton">Buscar vídeos</button>
-            <label class="consent-check" for="searchConsent"><input id="searchConsent" type="checkbox" /><span>Autorizar busca</span></label>
-            <label class="consent-check thumbnail-consent" for="thumbnailConsent"><input id="thumbnailConsent" type="checkbox" /><span>Miniaturas externas</span></label>
-            <p class="inline-message" id="searchError" role="alert" hidden></p>
-          </form>
-        </section>
-
-        <section class="results-layout" id="results" aria-label="Filtros e resultados">
-          <aside class="filter-panel" id="filterPanel" aria-label="Filtros locais"></aside>
-          <section class="results-panel" aria-labelledby="resultsTitle">
-            <div class="results-header">
-              <div><p class="eyebrow">VÍDEOS</p><h2 id="resultsTitle">Resultados da busca</h2></div>
-              <div class="results-tools"><p class="result-count" id="resultCount" role="status"></p><button class="clear-all-button" id="clearAllFilters" type="button" hidden>Limpar todos os filtros</button></div>
-            </div>
-            <p class="filter-summary" id="filterSummary" hidden></p>
-            <div class="state-card" id="resultState" role="status"></div>
-            <div class="video-grid" id="videoGrid"></div>
-            <p class="inline-message" id="paginationError" role="alert" hidden></p>
-            <div class="load-more-wrap" id="loadMoreWrap" hidden>
-              <button class="button button-secondary" type="button" id="loadMoreButton">Carregar mais</button>
-              <p>Esta ação solicita outra página para a mesma busca. Os filtros continuam locais.</p>
-            </div>
-          </section>
-        </section>
-
+      <main class="main-content">
+        <form class="search-form" id="homeSearch" role="search">
+          <label class="sr-only" for="homeSearchInput">Buscar</label>
+          <input id="homeSearchInput" name="q" type="search" placeholder="Buscar" autocomplete="off" />
+          <button class="search-submit" type="submit" aria-label="Buscar">↵</button>
+        </form>
       </main>
-
-      <footer class="footer">
-        <a class="footer-brand" href="/" aria-label="FILTROX, início"><img class="footer-logo" src="/assets/filtrox-mark.svg" alt="" /><span>FILTROX</span></a>
-        <span>Busca federada · filtros locais · player sob demanda</span>
-        <a class="footer-catalog" href="/catalog/">Catálogo</a>
-        <a href="#search">Voltar ao topo ↑</a>
-      </footer>
     </div>
   </body>
 </html>
