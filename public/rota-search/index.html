@@ -1,0 +1,95 @@
+<!doctype html>
+<html lang="pt-BR">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="theme-color" content="#090909" />
+    <meta name="robots" content="noindex, nofollow" />
+    <meta name="description" content="Buscador federado de vídeos PeerTube públicos sinalizados como conteúdo adulto. As consultas só são enviadas após confirmação." />
+    <title>Busca 18+ — FILTROX</title>
+    <link rel="icon" href="../assets/filtrox-mark.svg" type="image/svg+xml" />
+    <link rel="stylesheet" href="./styles.css" />
+    <script type="module" src="./app.js"></script>
+  </head>
+  <body>
+    <div class="age-gate" id="ageGate">
+      <section class="age-card" role="dialog" aria-modal="true" aria-labelledby="ageTitle">
+        <a class="brand" href="../" aria-label="FILTROX, início"><span class="brand-icon" aria-hidden="true">F</span><span>FILTRO<span class="brand-accent">X</span></span></a>
+        <span class="age-pill">18+</span>
+        <p class="eyebrow">BUSCA FEDERADA · PEERTUBE</p>
+        <h1 id="ageTitle">Área para adultos</h1>
+        <p>Este buscador pode encontrar vídeos marcados pela origem como conteúdo sexual explícito. Continue somente se tiver 18 anos ou mais e se esse conteúdo for legal na sua região.</p>
+        <button class="button button-primary" id="confirmAge" type="button">Tenho 18 anos ou mais — continuar</button>
+        <p class="age-footnote">A confirmação vale apenas para esta aba e não é salva.</p>
+        <a class="leave-link" href="../">Voltar ao catálogo FILTROX</a>
+      </section>
+    </div>
+
+    <div class="search-app" id="searchApp" hidden>
+      <header class="topbar">
+        <a class="brand" href="../" aria-label="FILTROX, início"><span class="brand-icon" aria-hidden="true">F</span><span>FILTRO<span class="brand-accent">X</span></span></a>
+        <nav class="top-nav" aria-label="Navegação da busca">
+          <a href="../">Catálogo</a>
+          <a href="#search">Buscar</a>
+          <a href="#results">Resultados</a>
+        </nav>
+        <span class="topbar-label"><i></i> PEERTUBE <b>18+</b></span>
+      </header>
+
+      <main class="page-wrap">
+        <section class="search-intro" id="search" aria-labelledby="pageTitle">
+          <p class="eyebrow"><span class="eyebrow-mark"></span> BUSCA FEDERADA <span class="eyebrow-separator">/</span> CONTEÚDO 18+</p>
+          <h1 id="pageTitle">Encontre por <em>tema.</em></h1>
+          <p class="intro-copy">Pesquise o índice público SepiaSearch. As tags são extraídas somente dos vídeos elegíveis carregados e refinam os resultados localmente.</p>
+          <form id="searchForm" class="search-form" novalidate>
+            <label class="sr-only" for="queryInput">Termo de busca</label>
+            <span class="search-icon" aria-hidden="true"></span>
+            <input id="queryInput" type="search" maxlength="200" autocomplete="off" placeholder="Digite um termo de busca…" />
+            <button class="button button-primary" type="submit" id="searchButton">Buscar vídeos</button>
+            <label class="consent-check" for="searchConsent"><input id="searchConsent" type="checkbox" /><span>Autorizo enviar este termo ao <strong>SepiaSearch</strong> para consultar vídeos.</span></label>
+            <label class="consent-check thumbnail-consent" for="thumbnailConsent"><input id="thumbnailConsent" type="checkbox" /><span>Carregar miniaturas externas (opcional). Ao aparecerem na tela, elas contatam a instância PeerTube de origem.</span></label>
+            <p class="privacy-inline">A consulta não é enviada até você marcar a autorização e pressionar “Buscar vídeos”. Busca e filtros ficam na memória desta página; miniaturas externas são opcionais e carregadas sob demanda.</p>
+            <p class="inline-message" id="searchError" role="alert" hidden></p>
+          </form>
+        </section>
+
+        <section class="notice-panel" aria-label="Aviso de conteúdo e privacidade">
+          <span class="notice-icon" aria-hidden="true">18+</span>
+          <p><strong>Conteúdo adulto e classificação indicativa.</strong> São exibidos apenas registros marcados como públicos e com a flag <code>EXPLICIT_SEX</code>. As classificações vêm das instâncias ou de quem publicou e podem estar ausentes ou incorretas. “Público” não garante gratuidade: podem existir senha, paywall ou cobrança externa.</p>
+        </section>
+
+        <section class="results-layout" id="results" aria-label="Filtros e resultados">
+          <aside class="filter-panel" id="filterPanel" aria-labelledby="filterTitle"></aside>
+          <section class="results-panel" aria-labelledby="resultsTitle">
+            <div class="results-header">
+              <div><p class="eyebrow">ÍNDICE SEPIASEARCH</p><h2 id="resultsTitle">Resultados da busca</h2></div>
+              <div class="results-tools"><p class="result-count" id="resultCount" role="status"></p><button class="clear-all-button" id="clearAllFilters" type="button" hidden>Limpar todos os filtros</button></div>
+            </div>
+            <p class="filter-summary" id="filterSummary" hidden></p>
+            <div class="state-card" id="resultState" role="status"></div>
+            <div class="video-grid" id="videoGrid"></div>
+            <p class="inline-message" id="paginationError" role="alert" hidden></p>
+            <div class="load-more-wrap" id="loadMoreWrap" hidden>
+              <button class="button button-secondary" type="button" id="loadMoreButton">Carregar mais</button>
+              <p>Esta ação solicita outra página para a mesma busca. Os filtros continuam locais.</p>
+            </div>
+          </section>
+        </section>
+
+        <section class="privacy-panel" aria-labelledby="privacyTitle">
+          <div class="privacy-symbol" aria-hidden="true">i</div>
+          <div><p class="eyebrow">ORIGEM E PRIVACIDADE</p><h2 id="privacyTitle">Você decide quando conectar.</h2>
+            <ul>
+              <li>O termo só é enviado ao SepiaSearch após sua autorização explícita e o envio do formulário; ele vai no parâmetro <code>search</code> da requisição GET. A URL exibida pela página não muda, e busca, filtros e resultados não são gravados em cookies nem no armazenamento local.</li>
+              <li>Não há analytics. Se você autorizar miniaturas, elas carregam sob demanda quando os cards se aproximam da tela e contatam o host da imagem; abrir o player ou o link original também contata a instância PeerTube.</li>
+              <li>O player incorporado só é carregado após clicar em “Reproduzir aqui”, sem autoplay. Se falhar, use o link para abrir o PeerTube original.</li>
+            </ul>
+          </div>
+          <a href="https://sepiasearch.org/" target="_blank" rel="noopener noreferrer">SepiaSearch <span aria-hidden="true">↗</span></a>
+        </section>
+      </main>
+
+      <footer class="footer"><a href="../">FILTROX</a><span>Busca federada · filtros locais · player sob demanda</span><a href="#search">Voltar ao topo ↑</a></footer>
+    </div>
+  </body>
+</html>
