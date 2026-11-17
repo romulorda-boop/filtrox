@@ -137,7 +137,7 @@ form.addEventListener('submit', (event) => {
     return;
   }
   if (!consentInput.checked) {
-    setMessage($('#searchError'), 'Para consultar, marque a autorização: o termo será enviado ao SepiaSearch.', { isError: true });
+    setMessage($('#searchError'), 'Autorize a busca para continuar.', { isError: true });
     consentInput.focus();
     return;
   }
@@ -398,7 +398,7 @@ function renderResults(eligible, visible) {
   } else if (!state.submittedQuery) {
     resultState.hidden = false;
     resultState.className = 'state-card';
-    resultState.textContent = 'Nenhuma consulta é feita ao abrir esta página. Confirme a idade e, para buscar, autorize o envio do termo ao SepiaSearch.';
+    resultState.textContent = 'Digite um termo e clique em Buscar vídeos.';
   } else if (!state.videos.length) {
     resultState.hidden = false;
     resultState.className = 'state-card';

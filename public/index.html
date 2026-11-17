@@ -26,14 +26,13 @@
     </div>
 
     <div class="search-app" id="searchApp" hidden>
-      <header class="topbar">
-        <a class="brand" href="/" aria-label="FILTROX, início"><img class="brand-icon" src="/assets/filtrox-mark.svg" alt="" /><span>FILTRO<span class="brand-accent">X</span></span></a>
-        <nav class="top-nav" aria-label="Navegação principal">
-          <a href="#search">Buscar</a>
-          <a href="#filterPanel">Tags</a>
-          <a href="#results">Vídeos</a>
-          <a href="#source-info">Sobre</a>
-        </nav>
+        <header class="topbar">
+          <a class="brand" href="/" aria-label="FILTROX, início"><img class="brand-icon" src="/assets/filtrox-mark.svg" alt="" /><span>FILTRO<span class="brand-accent">X</span></span></a>
+          <nav class="top-nav" aria-label="Navegação principal">
+            <a href="#search">Buscar</a>
+            <a href="#filterPanel">Tags</a>
+            <a href="#results">Vídeos</a>
+          </nav>
         <span class="topbar-label"><i></i> SEPIASEARCH <b>18+</b></span>
       </header>
 
@@ -47,16 +46,10 @@
             <span class="search-icon" aria-hidden="true"></span>
             <input id="queryInput" type="search" maxlength="200" autocomplete="off" placeholder="Ex.: ruiva, redhead…" />
             <button class="button button-primary" type="submit" id="searchButton">Buscar vídeos</button>
-            <label class="consent-check" for="searchConsent"><input id="searchConsent" type="checkbox" /><span>Autorizo enviar este termo ao <strong>SepiaSearch</strong> para consultar vídeos.</span></label>
-            <label class="consent-check thumbnail-consent" for="thumbnailConsent"><input id="thumbnailConsent" type="checkbox" /><span>Carregar miniaturas externas (opcional). Ao aparecerem na tela, elas contatam a instância PeerTube de origem.</span></label>
-            <p class="privacy-inline">A consulta não é enviada até você marcar a autorização e pressionar “Buscar vídeos”. Busca e filtros ficam na memória desta página; miniaturas externas são opcionais e carregadas sob demanda.</p>
+            <label class="consent-check" for="searchConsent"><input id="searchConsent" type="checkbox" /><span>Autorizar busca</span></label>
+            <label class="consent-check thumbnail-consent" for="thumbnailConsent"><input id="thumbnailConsent" type="checkbox" /><span>Miniaturas externas</span></label>
             <p class="inline-message" id="searchError" role="alert" hidden></p>
           </form>
-        </section>
-
-        <section class="notice-panel" aria-label="Aviso de conteúdo e privacidade">
-          <span class="notice-icon" aria-hidden="true">18+</span>
-          <p><strong>Apenas adultos.</strong> São exibidos somente registros marcados como públicos e com a flag <code>EXPLICIT_SEX</code>. As classificações vêm das instâncias ou de quem publicou e podem estar ausentes ou incorretas. “Público” não garante gratuidade: podem existir senha, paywall ou cobrança externa.</p>
         </section>
 
         <section class="results-layout" id="results" aria-label="Filtros e resultados">
@@ -77,17 +70,6 @@
           </section>
         </section>
 
-        <section class="privacy-panel" id="source-info" aria-labelledby="privacyTitle">
-          <div class="privacy-symbol" aria-hidden="true">i</div>
-          <div><p class="eyebrow">ORIGEM E PRIVACIDADE</p><h2 id="privacyTitle">Você decide quando conectar.</h2>
-            <ul>
-              <li>O termo só é enviado ao SepiaSearch após sua autorização explícita e o envio do formulário; ele vai no parâmetro <code>search</code> da requisição GET. A URL exibida pela página não muda, e busca, filtros e resultados não são gravados em cookies nem no armazenamento local.</li>
-              <li>Não há analytics. Se você autorizar miniaturas, elas carregam sob demanda quando os cards se aproximam da tela e contatam o host da imagem; abrir o player ou o link original também contata a instância PeerTube.</li>
-              <li>O player incorporado só é carregado após clicar em “Reproduzir aqui”, sem autoplay. Se falhar, use o link para abrir o PeerTube original.</li>
-            </ul>
-          </div>
-          <a href="https://sepiasearch.org/" target="_blank" rel="noopener noreferrer">SepiaSearch <span aria-hidden="true">↗</span></a>
-        </section>
       </main>
 
       <footer class="footer">
