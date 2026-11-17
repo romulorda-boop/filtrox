@@ -147,3 +147,37 @@ button, input { font: inherit; }
     padding-top: 18vh;
   }
 }
+
+.search-results {
+  width: min(680px, 100%);
+  margin-top: 42px;
+}
+
+.result-grid {
+  display: grid;
+  gap: 12px;
+}
+
+.result-card {
+  padding: 16px 0;
+  border-bottom: 1px solid var(--line);
+}
+
+.result-card h2 {
+  margin: 0;
+  font-size: 17px;
+  font-weight: 500;
+  letter-spacing: -0.02em;
+}
+
+.result-card p {
+  margin: 6px 0 0;
+  color: var(--muted);
+  font-size: 13px;
+}
+
+.no-results {
+  margin: 0;
+  color: var(--muted);
+  font-size: 14px;
+}
