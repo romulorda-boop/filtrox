@@ -1,6 +1,7 @@
 const http = require('node:http');
 const fs = require('node:fs');
 const path = require('node:path');
+const { handleCatalogRequest } = require('./api/catalog/catalog');
 
 const publicRoot = path.join(__dirname, 'public');
 const dataRoot = path.join(__dirname, 'data');
@@ -9,6 +10,10 @@ const types = {'.html':'text/html; charset=utf-8','.css':'text/css; charset=utf-
 
 http.createServer((request, response) => {
   const pathname = decodeURIComponent(new URL(request.url, 'http://localhost').pathname);
+  if (pathname === '/api/catalog') {
+    void handleCatalogRequest(request, response);
+    return;
+  }
   const isDataPath = pathname.startsWith('/data/');
   const root = isDataPath ? dataRoot : publicRoot;
   const relative = isDataPath ? pathname.slice('/data/'.length) : pathname === '/' ? 'index.html' : pathname.replace(/^\/+/, '');

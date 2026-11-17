@@ -19,6 +19,13 @@ jobs:
         with:
           submodules: true
           lfs: false
+      - name: Prepare catalog data for API
+        shell: bash
+        run: |
+          if [ -f data/xvideos_up.csv ]; then
+            mkdir -p api/data
+            cp data/xvideos_up.csv api/data/xvideos_up.csv
+          fi
       - name: Build And Deploy
         id: builddeploy
         uses: Azure/static-web-apps-deploy@v1
@@ -29,7 +36,7 @@ jobs:
           ###### Repository/Build Configurations - These values can be configured to match your app requirements. ######
           # For more information regarding Static Web App workflow configurations, please visit: https://aka.ms/swaworkflowconfig
           app_location: "./public" # App source code path
-          api_location: "" # Api source code path - optional
+          api_location: "./api" # Api source code path
           output_location: "." # Built app content directory - optional
           ###### End of Repository/Build Configurations ######
 

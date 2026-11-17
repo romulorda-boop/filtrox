@@ -159,9 +159,24 @@ button, input { font: inherit; }
 }
 
 .result-card {
+  display: grid;
+  grid-template-columns: 112px minmax(0, 1fr);
+  gap: 16px;
+  align-items: center;
   padding: 16px 0;
   border-bottom: 1px solid var(--line);
 }
+
+.result-thumb {
+  display: block;
+  width: 112px;
+  height: 70px;
+  border-radius: 3px;
+  background: #deded7;
+  object-fit: cover;
+}
+
+.result-thumb-empty { background: linear-gradient(135deg, #deded7, #c9c9c1); }
 
 .result-card h2 {
   margin: 0;
@@ -174,6 +189,11 @@ button, input { font: inherit; }
   margin: 6px 0 0;
   color: var(--muted);
   font-size: 13px;
+}
+
+@media (max-width: 480px) {
+  .result-card { grid-template-columns: 88px minmax(0, 1fr); gap: 12px; }
+  .result-thumb { width: 88px; height: 58px; }
 }
 
 .no-results {
