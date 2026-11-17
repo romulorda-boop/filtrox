@@ -7,6 +7,7 @@
     <meta name="description" content="FILTROX — busca limpa e descoberta de vídeos." />
     <link rel="icon" href="/assets/filtrox-mark.svg" type="image/svg+xml" />
     <link rel="stylesheet" href="/home.css" />
+    <script src="/data-config.js" defer></script>
     <script src="/home.js" defer></script>
     <title>FILTROX</title>
   </head>
@@ -19,6 +20,18 @@
           <button class="filter-button" type="button" data-filter="commented" aria-pressed="false">Mais comentado</button>
           <button class="filter-button" type="button" data-filter="rated" aria-pressed="false">Melhor avaliado</button>
         </nav>
+        <section class="tag-browser" aria-label="Tags oficiais do catálogo">
+          <button class="tag-toggle" id="homeTagsToggle" type="button" aria-expanded="false" aria-controls="homeTagsPanel">
+            <span>Todas as tags</span><span class="tag-count" id="homeTagsCount" hidden></span><span class="tag-chevron" aria-hidden="true">⌄</span>
+          </button>
+          <div class="tag-panel" id="homeTagsPanel" hidden>
+            <label class="sr-only" for="homeTagSearch">Filtrar tags oficiais</label>
+            <input class="tag-search" id="homeTagSearch" type="search" placeholder="Filtrar tags…" autocomplete="off" />
+            <p class="tag-status" id="homeTagStatus" aria-live="polite">Tags lidas dos CSVs oficiais ao abrir esta seção.</p>
+            <div class="tag-results" id="homeTagResults" role="list" aria-label="Tags do CSV oficial"></div>
+            <button class="tag-load-more" id="homeTagsMore" type="button" hidden>Carregar mais tags</button>
+          </div>
+        </section>
       </aside>
 
       <main class="main-content">

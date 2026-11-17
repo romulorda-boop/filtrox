@@ -332,4 +332,10 @@ $('#menuToggle').addEventListener('click',()=>{$('#sidebar').classList.toggle('i
 $('#mobileScrim').addEventListener('click',closeMobileNav);
 document.addEventListener('keydown',event=>{if(event.key==='Escape'&&!backdrop.hidden)closeDetails();if(event.key==='/'&&!/INPUT|TEXTAREA|SELECT/.test(document.activeElement.tagName)){event.preventDefault();$('#searchInput').focus()}if((event.metaKey||event.ctrlKey)&&event.key.toLowerCase()==='k'){event.preventDefault();$('#searchInput').focus()}});
 
+const initialParams=new URLSearchParams(window.location.search);
+const initialTag=initialParams.get('tag')?.trim()||'';
+state.tagFilter=initialTag;
+state.query=initialParams.get('q')?.trim()||initialTag;
+$('#searchInput').value=state.query;
+if(initialTag){$('#crumbTitle').textContent=`TAG · ${initialTag.toLocaleUpperCase('pt-BR')}`;$('#sectionKicker').textContent='TAG OFICIAL · CSV DO CATÁLOGO';$('#sectionTitle').textContent=initialTag;$('#hero').hidden=true}
 loadVideos();drawPreview(0);

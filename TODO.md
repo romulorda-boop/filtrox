@@ -56,6 +56,12 @@
   - Adaptar o novo menu e a lista de tags para desktop e celular, sem sobreposição ou overflow horizontal.
   - Evidência: busca manual por título/elenco seguiu ativa; Playwright confirmou abertura do menu e ausência de overflow horizontal em viewport de 390 px.
 
+- [x] **Homepage `/` — lista oficial de tags no menu lateral**
+  - Gerar a lista dinamicamente exclusivamente a partir da coluna `tags` do CSV oficial e excluir vídeos presentes no CSV oficial de remoções; carregar ambos os CSVs com `cache: no-store`.
+  - Disponibilizar busca dentro da lista e carregamento incremental; não inventar tags ou contagens.
+  - Selecionar uma tag deve abrir `/catalog/` com filtro exato e preservar a busca existente.
+  - Evidência: Playwright confirmou tags derivadas das duas fontes CSV, exclusão de vídeos removidos, filtragem da lista e carregamento do segundo lote; selecionar `0-pussy` abriu `/catalog/?tag=0-pussy` e exibiu apenas dois vídeos correspondentes. Viewport mobile de 390 px e desktop sem overflow horizontal.
+
 ## Pendências operacionais
 
 - [ ] **Confirmar CORS na origem publicada e renovar os SAS**
