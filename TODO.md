@@ -29,10 +29,13 @@
   - Usar a URL do vídeo como chave de cruzamento e ocultar da interface os registros correspondentes às remoções.
   - Evidência: a base real contém 13.751 linhas separadas por `;`; a lista de remoção contém 26.569 URLs em linhas `origem|url`. Teste local na interface com a base real e uma URL sintética correspondente confirmou 13.750 resultados e 1 ocultado; busca, categoria e paginação também passaram. Nos arquivos remotos atuais foram encontrados zero cruzamentos entre as URLs.
 
-- [ ] **Validar CORS na origem publicada e promover para `main`**
-  - O navegador de preview da Sandbox não conseguiu fazer `fetch` dos blobs (`TypeError: Failed to fetch`), embora os downloads via HTTP direto funcionem; validar/permitir a origem real do Azure Static Web Apps na configuração CORS do Blob.
+- [x] **Promover `Colab3` para `main` e acionar o deploy**
+  - Commit da implementação em `Colab3`: `c955e64`; a branch também incorpora o workflow remoto de `main`.
+  - Merge enviado para `main`: `32b87de`; GitHub Actions iniciou o workflow `Azure Static Web Apps CI/CD` (execução `44005519084`).
+
+- [ ] **Validar CORS na origem publicada e renovar os SAS**
+  - O navegador de preview da Sandbox não conseguiu fazer `fetch` dos blobs (`TypeError: Failed to fetch`), embora os downloads via HTTP direto funcionem; confirmar que a origem real do Azure Static Web Apps está autorizada no CORS do Blob.
   - Os SAS configurados vencem em 2026-11-17 10:23Z; renová-los antes do vencimento para manter o catálogo disponível.
-  - Após a validação da origem publicada e a renovação dos SAS, mesclar `Colab3` em `main` e conferir a execução do workflow de deploy.
 
 - [x] **Grade e interações dos cards**
   - Exibir uma grade responsiva de cards de vídeo com imagem, título e metadados essenciais.
