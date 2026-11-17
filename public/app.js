@@ -1,19 +1,9 @@
-const videos = [
-  {id:'cidade',title:'A cidade não dorme',subtitle:'São Paulo, depois das 23h.',creator:'FILTROX Originals',category:'Curtas',duration:12,rating:'9,2',year:2026,description:'Quando as luzes baixam, São Paulo revela outra frequência. Uma noite, três encontros e tudo o que quase passou despercebido. Um curta original sobre os pequenos acasos que fazem uma cidade imensa parecer íntima.',tags:['Noturno','Cidade','Encontros'],art:'art-1',badge:'ESTREIA'},
-  {id:'ultima-luz',title:'A última luz do verão',subtitle:'Uma estação em suspenso.',creator:'Lia Monteiro',category:'Documentário',duration:18,rating:'8,9',year:2026,description:'Na última semana antes da mudança, uma fotógrafa revisita a praia onde passou todos os verões da infância. Um retrato delicado sobre tempo, memória e despedidas que não parecem despedidas.',tags:['Memória','Viagem','Retrato'],art:'art-2',badge:'NOVO'},
-  {id:'frequencia',title:'Frequência baixa',subtitle:'Música para ouvir de perto.',creator:'Estúdio Quase',category:'Música',duration:9,rating:'9,5',year:2026,description:'Dentro de um estúdio pequeno, músicos reinventam canções com o que têm à mão. Um convite para chegar perto do processo e escutar os espaços entre as notas.',tags:['Música','Estúdio','Ao vivo'],art:'art-3',badge:'SESSÃO'},
-  {id:'entre-linhas',title:'Entre linhas',subtitle:'O que os muros escolhem contar.',creator:'Caio Vidal',category:'Documentário',duration:22,rating:'8,7',year:2025,description:'Uma caminhada pela cidade com artistas que transformam paredes em arquivo afetivo. Conversas, tintas e histórias reunidas num ensaio visual sobre espaço compartilhado.',tags:['Arte','Cidade','Cultura'],art:'art-4',badge:'DOC'},
-  {id:'quarto-andar',title:'O quarto andar',subtitle:'Uma janela, muitas vidas.',creator:'Bia Salles',category:'Curtas',duration:14,rating:'9,0',year:2025,description:'Durante uma queda de energia, vizinhos que nunca se encontraram começam a conversar pelas janelas. Uma pequena comédia sobre distância, gentileza e a vida acontecendo ao redor.',tags:['Ficção','Vizinhança','Humor'],art:'art-5',badge:'CURTA'},
-  {id:'cor-laranja',title:'A cor do silêncio',subtitle:'Um estudo em luz natural.',creator:'Nina Prado',category:'Atmosfera',duration:7,rating:'8,8',year:2026,description:'Um ensaio sensorial, sem pressa e sem palavras: luz de fim de tarde atravessando os espaços de um apartamento que guarda sinais de quem viveu ali.',tags:['Ensaio','Luz','Sem diálogos'],art:'art-6',badge:'ENSAIO'},
-  {id:'mare-cheia',title:'Maré cheia',subtitle:'O litoral contado por quem fica.',creator:'André Diniz',category:'Documentário',duration:26,rating:'9,1',year:2025,description:'Na vila costeira de Pontal, quatro gerações acompanham a mudança do mar e das rotinas. Um documentário de observação sobre trabalho, pertencimento e o futuro da costa.',tags:['Litoral','Comunidade','Ambiente'],art:'art-7',badge:'DOC'},
-  {id:'a-pausa',title:'A pausa entre nós',subtitle:'Uma conversa que quase não começa.',creator:'Marina Okada',category:'Curtas',duration:11,rating:'8,6',year:2026,description:'Duas pessoas se reencontram por acaso depois de anos. Nada de grandes explicações: só um café, uma rua familiar e a chance de dizer o que ficou guardado.',tags:['Encontro','Memória','Ficção'],art:'art-8',badge:'NOVO'},
-  {id:'objeto',title:'Objeto encontrado',subtitle:'Coisas que viajam de mão em mão.',creator:'Arquivo Comum',category:'Documentário',duration:16,rating:'9,3',year:2024,description:'Uma câmera analógica passa por diferentes pessoas ao longo de uma semana. Cada encontro acrescenta uma imagem e uma história ao rolo que ninguém planejou revelar.',tags:['Objetos','Retrato','Arquivo'],art:'art-9',badge:'CURADORIA'},
-  {id:'lados-b',title:'Lados B: ensaio 03',subtitle:'Improviso em três movimentos.',creator:'Casa Sonora',category:'Música',duration:13,rating:'9,4',year:2026,description:'Três músicos entram em sala sem repertório e criam uma peça a partir dos sons da rua. Acompanhe um encontro espontâneo onde o erro vira caminho.',tags:['Música','Improviso','Estúdio'],art:'art-10',badge:'SESSÃO'},
-  {id:'linha-noturna',title:'Linha noturna',subtitle:'Um ônibus, seis histórias.',creator:'Rafaela Luz',category:'Curtas',duration:19,rating:'8,9',year:2025,description:'No último ônibus da linha, passageiros de mundos distintos dividem o mesmo trajeto. Um mosaico de conversas, silêncios e destinos cruzados durante uma madrugada.',tags:['Noite','Cidade','Ficção'],art:'art-11',badge:'CURTA'},
-  {id:'jardim',title:'Jardim suspenso',subtitle:'Uma cidade vista de cima.',creator:'Ivo Fernandes',category:'Atmosfera',duration:8,rating:'8,5',year:2026,description:'No alto de um edifício, uma moradora cultiva um jardim improvável. Um breve retrato contemplativo de quem cria um lugar próprio no meio da pressa.',tags:['Cidade','Natureza','Ensaio'],art:'art-12',badge:'ENSAIO'}
-];
+let videos = [];
+let featuredVideoId = null;
+let catalogStats = {base:0,removals:0,hidden:0,remaining:0};
 
-const state = {category:'Todos',nav:'inicio',query:'',sort:'featured',favorites:new Set(readFavorites()),showAll:false,current:null,playing:false,elapsed:0,raf:0,toastTimer:0};
+const PAGE_SIZE = 48;
+const state = {category:'Todos',nav:'inicio',query:'',sort:'featured',favorites:new Set(readFavorites()),showAll:false,page:1,current:null,playing:false,elapsed:0,raf:0,toastTimer:0};
 const $ = (selector, root=document) => root.querySelector(selector);
 const grid = $('#videoGrid');
 const backdrop = $('#detailBackdrop');
@@ -24,30 +14,160 @@ const duration = 24;
 
 function readFavorites(){try{return JSON.parse(localStorage.getItem('filtrox-favorites')||localStorage.getItem('velvet-favorites')||'[]')}catch{return []}}
 function saveFavorites(){try{localStorage.setItem('filtrox-favorites',JSON.stringify([...state.favorites]))}catch{}}
+function safeSourceLabel(sourceUrl){try{const url=new URL(sourceUrl,location.href);return `${url.origin}${url.pathname}`}catch{return 'fonte CSV'}}
+function isHttpUrl(value){return /^https?:\/\//i.test(String(value||'').trim())}
+function normalizeUrlKey(value){
+  const raw=String(value||'').trim();
+  if(!raw)return '';
+  try{const url=new URL(raw);return `${url.hostname.toLowerCase().replace(/^www\./,'')}${url.pathname.toLowerCase().replace(/\/+$/,'')}`}catch{return raw.replace(/\/+$/,'').toLowerCase()}
+}
+function rowUrl(row,preferredIndex){
+  const preferred=String(row?.[preferredIndex]||'').trim();
+  return isHttpUrl(preferred)?preferred:String(row?.find?.(isHttpUrl)||'').trim();
+}
+function parseCsvRows(text,delimiter,label){
+  const parsed=window.Papa.parse(text,{delimiter,header:false,skipEmptyLines:'greedy'});
+  if(parsed.errors?.length)console.warn(`[FILTROX] ${label}: ${parsed.errors.length} aviso(s) de parsing CSV.`);
+  return parsed.data.filter(row=>Array.isArray(row)&&row.some(value=>String(value??'').trim()));
+}
+function stableVideoId(url){
+  const match=String(url).match(/\/video\.([a-z0-9]+)/i);
+  if(match)return `xv-${match[1].toLowerCase()}`;
+  let hash=2166136261;
+  for(const char of String(url)){hash^=char.charCodeAt(0);hash=Math.imul(hash,16777619)}
+  return `video-${(hash>>>0).toString(36)}`;
+}
+function displayCategory(value){return String(value||'Outros').replace(/[_-]+/g,' ').replace(/\b[a-z]/gi,char=>char.toUpperCase())}
+function normalizeVideo(row,index,url){
+  const columns=window.FILTROX_CONFIG?.baseColumns||{};
+  const value=name=>String(row[columns[name]]??'').trim();
+  const tags=[...new Set(`${value('tags')},${value('cast')}`.split(/[|,]/).map(tag=>tag.trim()).filter(Boolean))].slice(0,16);
+  const seconds=Number.parseFloat(value('duration').replace(/[^\d.]/g,''))||0;
+  const uploadedAt=value('uploadedAt');
+  const year=Number(uploadedAt.match(/\b(19|20)\d{2}\b/)?.[0])||0;
+  return {
+    id:stableVideoId(url),url,ordinal:index+1,
+    title:value('title')||`Vídeo ${index+1}`,
+    subtitle:value('cast')||value('publisher')||'Vídeo do catálogo',
+    creator:value('publisher')||'Fonte externa',
+    category:value('category')||'Outros',
+    duration:Math.max(1,Math.round(seconds/60)),
+    rating:'—',year,
+    publishedAt:uploadedAt,
+    description:tags.length?`Tags: ${tags.slice(0,8).join(', ')}`:'Vídeo do catálogo',
+    tags,art:`art-${(index%12)+1}`,
+    badge:value('quality')||'CATÁLOGO',
+    views:Number.parseInt(value('views').replace(/[^\d]/g,''),10)||0
+  };
+}
+function updateFeaturedVideo(video){
+  if(!video)return;
+  featuredVideoId=video.id;
+  $('#heroTitle').textContent=video.title;
+  $('.hero-description').textContent=video.subtitle||video.description;
+  $('.hero-copy .eyebrow').textContent=`FILTROX · ${displayCategory(video.category)} · ${video.duration} MIN`;
+  $('.hero-meta').textContent=`${displayCategory(video.category)} · ${video.year||'—'} · ${video.badge}`;
+  $('.hero-serial').textContent='CATÁLOGO FILTROX';
+}
+function renderCategoryFilters(){
+  const counts=new Map();
+  for(const video of videos)counts.set(video.category,(counts.get(video.category)||0)+1);
+  const categories=[...counts.entries()].sort((a,b)=>b[1]-a[1]||a[0].localeCompare(b[0],'pt-BR')).slice(0,4).map(([category])=>category);
+  const row=$('#filterRow');
+  const sortControl=$('.sort-control',row);
+  row.querySelectorAll('.filter-chip').forEach(button=>button.remove());
+  const createChip=(category,label,isSelected=false,count=null)=>{
+    const button=document.createElement('button');
+    button.type='button';button.className=`filter-chip${isSelected?' is-selected':''}`;button.dataset.category=category;
+    button.append(document.createTextNode(label));
+    if(count!==null){const span=document.createElement('span');span.textContent=String(count);button.append(' ',span)}
+    row.insertBefore(button,sortControl);
+  };
+  createChip('Todos','Tudo',state.category==='Todos',videos.length);
+  categories.forEach(category=>createChip(category,displayCategory(category),state.category===category));
+  const sideButtons=[...document.querySelectorAll('[data-filter]')];
+  sideButtons.forEach((button,index)=>{
+    const category=categories[index];
+    button.hidden=!category;
+    if(!category)return;
+    button.dataset.filter=category;
+    const icon=button.querySelector('.nav-icon');
+    button.replaceChildren(...(icon?[icon]:[]),document.createTextNode(displayCategory(category)));
+  });
+}
+function showCatalogLoadError(error,sourceUrl){
+  console.error(`[FILTROX] Falha ao carregar ${safeSourceLabel(sourceUrl)} (${error?.name||'erro'}).`);
+  $('#searchSummary').textContent='Não foi possível carregar o catálogo de vídeos.';
+  $('#emptyState').hidden=false;
+  $('#loadMore').hidden=true;
+}
+async function loadVideos(){
+  const config=window.FILTROX_CONFIG||{};
+  const baseUrl=config.baseCsvUrl||'';
+  const removalUrl=config.removalCsvUrl||'';
+  if(!window.Papa){showCatalogLoadError(new Error('PapaParse indisponível.'),baseUrl||location.href);return}
+  if(!baseUrl||!removalUrl){showCatalogLoadError(new Error('URLs dos dois CSVs não configuradas.'),baseUrl||location.href);return}
+  try{
+    const [baseResponse,removalResponse]=await Promise.all([fetch(baseUrl),fetch(removalUrl)]);
+    if(!baseResponse.ok)throw new Error(`base HTTP ${baseResponse.status}`);
+    if(!removalResponse.ok)throw new Error(`remoções HTTP ${removalResponse.status}`);
+    const [baseText,removalText]=await Promise.all([baseResponse.text(),removalResponse.text()]);
+    const baseRows=parseCsvRows(baseText,config.baseDelimiter||';','base');
+    const removalRows=parseCsvRows(removalText,config.removalDelimiter||'|','remoções');
+    const baseColumn=Number.isInteger(config.baseUrlColumn)?config.baseUrlColumn:0;
+    const removalColumn=Number.isInteger(config.removalUrlColumn)?config.removalUrlColumn:1;
+    const removalKeys=new Set(removalRows.map(row=>normalizeUrlKey(rowUrl(row,removalColumn))).filter(Boolean));
+    if(!baseRows.length||!removalKeys.size)throw new Error('CSV base ou lista de remoções vazia/inválida.');
+    const seen=new Set();
+    let hidden=0;
+    videos=[];
+    for(let index=0;index<baseRows.length;index++){
+      const row=baseRows[index];
+      if(index===0&&String(row[baseColumn]||'').trim().toLowerCase()===String(config.keyField||'url').toLowerCase())continue;
+      const url=rowUrl(row,baseColumn);
+      const key=normalizeUrlKey(url);
+      if(!key)continue;
+      if(removalKeys.has(key)){hidden++;continue}
+      if(seen.has(key))continue;
+      seen.add(key);
+      const video=normalizeVideo(row,index,url);
+      video.ordinal=videos.length+1;
+      videos.push(video);
+    }
+    catalogStats={base:baseRows.length,removals:removalKeys.size,hidden,remaining:videos.length};
+    if(!videos.length)throw new Error('Nenhum registro restante após cruzar as remoções.');
+    updateFeaturedVideo(videos[0]);
+    renderCategoryFilters();
+    console.info(`[FILTROX] base=${catalogStats.base}; remoções=${catalogStats.removals}; ocultados=${catalogStats.hidden}; exibidos=${catalogStats.remaining}.`);
+    render();
+  }catch(error){showCatalogLoadError(error,baseUrl)}
+}
 function visibleVideos(){
   let items=[...videos];
   if(state.nav==='favoritos') items=items.filter(v=>state.favorites.has(v.id));
-  if(state.nav==='em-alta') items=items.filter(v=>['cidade','frequencia','objeto','lados-b'].includes(v.id));
-  if(state.nav==='recentes') items=items.filter(v=>v.year===2026);
-  if(state.category!=='Todos') items=items.filter(v=>v.category===state.category || (state.category==='Atmosfera' && v.tags.includes('Ensaio')));
+  if(state.nav==='recentes') items=items.filter(v=>v.year===Math.max(0,...videos.map(video=>video.year)));
+  if(state.category!=='Todos') items=items.filter(v=>v.category===state.category);
   if(state.query){const q=state.query.toLocaleLowerCase('pt-BR');items=items.filter(v=>[v.title,v.subtitle,v.creator,v.category,v.description,...v.tags].join(' ').toLocaleLowerCase('pt-BR').includes(q))}
-  if(state.sort==='newest') items.sort((a,b)=>b.year-a.year || a.title.localeCompare(b.title,'pt-BR'));
+  if(state.sort==='newest') items.sort((a,b)=>(Date.parse(b.publishedAt)||0)-(Date.parse(a.publishedAt)||0) || a.title.localeCompare(b.title,'pt-BR'));
   if(state.sort==='az') items.sort((a,b)=>a.title.localeCompare(b.title,'pt-BR'));
+  if(state.nav==='em-alta'&&state.sort==='featured') items.sort((a,b)=>b.views-a.views);
   return items;
 }
-function posterMarkup(video){return `<div class="card-cover ${video.art}" role="img" aria-label="Arte abstrata original de ${escapeHtml(video.title)}"><span class="art-shape shape-a"></span><span class="art-shape shape-b"></span><span class="art-shape shape-c"></span><div class="cover-topline"><span class="cover-series">FILTROX · ${video.badge}</span><span class="cover-duration">${video.duration} MIN</span></div><span class="cover-bottom">Nº ${String(videos.indexOf(video)+1).padStart(2,'0')} &nbsp;—&nbsp; ${video.category.toUpperCase()}</span><button class="cover-play" data-open="${video.id}" aria-label="Abrir ${escapeHtml(video.title)}"><span class="play-triangle"></span></button></div>`}
+function posterMarkup(video){return `<div class="card-cover ${video.art}" role="img" aria-label="Arte abstrata original de ${escapeHtml(video.title)}"><span class="art-shape shape-a"></span><span class="art-shape shape-b"></span><span class="art-shape shape-c"></span><div class="cover-topline"><span class="cover-series">FILTROX · ${escapeHtml(video.badge)}</span><span class="cover-duration">${video.duration} MIN</span></div><span class="cover-bottom">Nº ${String(video.ordinal).padStart(2,'0')} &nbsp;—&nbsp; ${escapeHtml(displayCategory(video.category).toUpperCase())}</span><button class="cover-play" data-open="${video.id}" aria-label="Abrir ${escapeHtml(video.title)}"><span class="play-triangle"></span></button></div>`}
 function escapeHtml(value){return String(value).replace(/[&<>"']/g,char=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[char]))}
 function render(){
   const items=visibleVideos();
-  grid.innerHTML=items.map((v,index)=>`<article class="video-card" style="animation-delay:${Math.min(index*35,250)}ms">${posterMarkup(v)}<div class="card-info"><div><button class="card-title-button" data-open="${v.id}">${escapeHtml(v.title)}</button><p class="card-subtitle">${escapeHtml(v.subtitle)}</p><p class="card-type">${escapeHtml(v.category)} <i></i> ${v.year}</p></div><div class="card-side"><span class="card-rating"><span>✳</span> ${v.rating}</span><button class="save-button ${state.favorites.has(v.id)?'is-saved':''}" data-save="${v.id}" aria-label="${state.favorites.has(v.id)?'Remover':'Adicionar'} ${escapeHtml(v.title)} ${state.favorites.has(v.id)?'da':'à'} minha lista" aria-pressed="${state.favorites.has(v.id)}">${state.favorites.has(v.id)?'♥':'＋'}</button></div></div></article>`).join('');
+  const shown=items.slice(0,state.page*PAGE_SIZE);
+  grid.innerHTML=shown.map((v,index)=>`<article class="video-card" style="animation-delay:${Math.min(index*15,250)}ms">${posterMarkup(v)}<div class="card-info"><div><button class="card-title-button" data-open="${v.id}">${escapeHtml(v.title)}</button><p class="card-subtitle">${escapeHtml(v.subtitle)}</p><p class="card-type">${escapeHtml(displayCategory(v.category))} <i></i> ${v.year||'—'}</p></div><div class="card-side"><span class="card-rating"><span>✳</span> ${escapeHtml(v.rating)}</span><button class="save-button ${state.favorites.has(v.id)?'is-saved':''}" data-save="${v.id}" aria-label="${state.favorites.has(v.id)?'Remover':'Adicionar'} ${escapeHtml(v.title)} ${state.favorites.has(v.id)?'da':'à'} minha lista" aria-pressed="${state.favorites.has(v.id)}">${state.favorites.has(v.id)?'♥':'＋'}</button></div></div></article>`).join('');
   $('#emptyState').hidden=items.length>0;
-  $('#loadMore').hidden=state.nav==='favoritos'||items.length===0;
-  $('#searchSummary').textContent=state.query?`${items.length} ${items.length===1?'resultado':'resultados'} para “${state.query}”`:'';
+  $('#loadMore').hidden=shown.length>=items.length;
+  $('#loadMore').innerHTML=`CARREGAR MAIS (${Math.max(0,items.length-shown.length).toLocaleString('pt-BR')}) <span aria-hidden="true">＋</span>`;
+  $('#searchSummary').textContent=state.query?`${items.length.toLocaleString('pt-BR')} ${items.length===1?'resultado':'resultados'} para “${state.query}”`:`${items.length.toLocaleString('pt-BR')} vídeos · ${catalogStats.hidden.toLocaleString('pt-BR')} ocultados pela lista de remoções`;
   $('#savedCount').textContent=state.favorites.size||'';
   const chip=$('#filterRow .filter-chip[data-category="Todos"] span'); if(chip)chip.textContent=String(items.length);
 }
 function setNav(nav,label){
-  state.nav=nav;state.category='Todos';
+  state.nav=nav;state.category='Todos';state.page=1;
   document.querySelectorAll('.nav-link').forEach(el=>el.classList.toggle('is-active',el.dataset.nav===nav));
   document.querySelectorAll('.filter-chip').forEach(el=>el.classList.toggle('is-selected',el.dataset.category==='Todos'));
   const labels={'inicio':'DESCOBRIR','em-alta':'EM ALTA','recentes':'ADICIONADOS','favoritos':'MINHA LISTA'};
@@ -61,7 +181,7 @@ function setNav(nav,label){
   closeMobileNav();render();
 }
 function setCategory(category){
-  state.nav='inicio';state.category=category;
+  state.nav='inicio';state.category=category;state.page=1;
   document.querySelectorAll('.nav-link').forEach(el=>el.classList.remove('is-active'));
   document.querySelectorAll('.filter-chip').forEach(el=>el.classList.toggle('is-selected',el.dataset.category===category));
   $('#crumbTitle').textContent=category==='Todos'?'DESCOBRIR':category.toUpperCase();
@@ -114,14 +234,14 @@ function togglePreview(){if(playerWrap.hidden){playerWrap.hidden=false;state.ela
 grid.addEventListener('click',event=>{const save=event.target.closest('[data-save]');if(save){event.stopPropagation();toggleFavorite(save.dataset.save);return}const open=event.target.closest('[data-open]');if(open)openDetails(open.dataset.open)});
 document.querySelectorAll('[data-nav]').forEach(el=>el.addEventListener('click',()=>setNav(el.dataset.nav,el.textContent.trim())));
 document.querySelectorAll('[data-filter]').forEach(el=>el.addEventListener('click',()=>setCategory(el.dataset.filter)));
-document.querySelectorAll('.filter-chip').forEach(el=>el.addEventListener('click',()=>setCategory(el.dataset.category)));
-$('#searchInput').addEventListener('input',event=>{state.query=event.target.value.trim();render()});
-$('#sortSelect').addEventListener('change',event=>{state.sort=event.target.value;render()});
+$('#filterRow').addEventListener('click',event=>{const chip=event.target.closest('.filter-chip');if(chip)setCategory(chip.dataset.category)});
+$('#searchInput').addEventListener('input',event=>{state.query=event.target.value.trim();state.page=1;render()});
+$('#sortSelect').addEventListener('change',event=>{state.sort=event.target.value;state.page=1;render()});
 $('#viewAll').addEventListener('click',()=>{setCategory('Todos');$('#sectionTitle').scrollIntoView({behavior:'smooth',block:'start'})});
-$('#loadMore').addEventListener('click',()=>showToast('Você chegou ao fim desta seleção.'));
+$('#loadMore').addEventListener('click',()=>{state.page++;render()});
 $('#clearFilters').addEventListener('click',()=>{$('#searchInput').value='';state.query='';state.sort='featured';$('#sortSelect').value='featured';setCategory('Todos')});
-$('#heroPlay').addEventListener('click',()=>openDetails('cidade'));
-$('#heroDetails').addEventListener('click',()=>openDetails('cidade'));
+$('#heroPlay').addEventListener('click',()=>featuredVideoId&&openDetails(featuredVideoId));
+$('#heroDetails').addEventListener('click',()=>featuredVideoId&&openDetails(featuredVideoId));
 $('#closeModal').addEventListener('click',closeDetails);
 backdrop.addEventListener('click',event=>{if(event.target===backdrop)closeDetails()});
 $('#modalPlay').addEventListener('click',togglePreview);
@@ -134,4 +254,4 @@ $('#menuToggle').addEventListener('click',()=>{$('#sidebar').classList.toggle('i
 $('#mobileScrim').addEventListener('click',closeMobileNav);
 document.addEventListener('keydown',event=>{if(event.key==='Escape'&&!backdrop.hidden)closeDetails();if(event.key==='/'&&!/INPUT|TEXTAREA|SELECT/.test(document.activeElement.tagName)){event.preventDefault();$('#searchInput').focus()}if((event.metaKey||event.ctrlKey)&&event.key.toLowerCase()==='k'){event.preventDefault();$('#searchInput').focus()}});
 
-render();drawPreview(0);
+loadVideos();drawPreview(0);
