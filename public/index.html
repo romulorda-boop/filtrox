@@ -3,115 +3,99 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <meta name="theme-color" content="#101010" />
-    <meta name="description" content="FILTROX — uma seleção de histórias para depois do anoitecer. Cinema, música e ideias em movimento." />
-    <title>FILTROX — Cinema after dark</title>
+    <meta name="theme-color" content="#090909" />
+    <meta name="robots" content="noindex, nofollow" />
+    <meta name="description" content="FILTROX — busca federada de vídeos PeerTube públicos sinalizados como conteúdo adulto, com consulta sob consentimento e filtros locais." />
     <link rel="icon" href="/assets/filtrox-mark.svg" type="image/svg+xml" />
-    <link rel="stylesheet" href="/styles.css" />
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.4.1/papaparse.min.js" defer></script>
-    <script src="/data-config.js" defer></script>
-    <script src="/app.js" defer></script>
+    <title>FILTROX — Busca federada 18+</title>
+    <link rel="stylesheet" href="/rota-search/styles.css" />
+    <script type="module" src="/rota-search/app.js"></script>
   </head>
   <body>
-    <div class="app-shell">
-      <aside class="sidebar" id="sidebar" aria-label="Navegação principal">
-        <a class="brand" href="#inicio" aria-label="FILTROX, início" data-nav="inicio">
-          <span class="brand-mark" aria-hidden="true"><i></i><i></i><i></i></span>
-          <span class="brand-word">FILTROX<small>CINEMA AFTER DARK</small></span>
-        </a>
-        <div class="sidebar-scroll">
-          <div class="nav-group">
-            <p class="nav-label">EXPLORAR</p>
-            <button class="nav-link is-active" data-nav="inicio"><span class="nav-icon icon-home" aria-hidden="true"></span>Início</button>
-            <button class="nav-link" data-nav="em-alta"><span class="nav-icon icon-trend" aria-hidden="true"></span>Em alta <span class="nav-badge">4</span></button>
-            <button class="nav-link" data-nav="recentes"><span class="nav-icon icon-clock" aria-hidden="true"></span>Adicionados</button>
-            <a class="nav-link nav-link-external" href="./rota-search/" aria-label="Abrir buscador PeerTube para maiores de 18 anos"><span class="nav-icon icon-trend" aria-hidden="true"></span>Busca SepiaSearch <span class="nav-badge">18+</span></a>
-          </div>
-          <div class="nav-group">
-            <p class="nav-label">COLEÇÕES</p>
-            <button class="nav-link" data-filter="Curtas"><span class="nav-icon icon-spark" aria-hidden="true"></span>Curtas</button>
-            <button class="nav-link" data-filter="Documentário"><span class="nav-icon icon-eye" aria-hidden="true"></span>Documentários</button>
-            <button class="nav-link" data-filter="Música"><span class="nav-icon icon-note" aria-hidden="true"></span>Música &amp; arte</button>
-          </div>
-          <div class="nav-group nav-group-library">
-            <p class="nav-label">SUA BIBLIOTECA</p>
-            <button class="nav-link" data-nav="favoritos"><span class="nav-icon icon-heart" aria-hidden="true"></span>Minha lista<span class="saved-count" id="savedCount">0</span></button>
-          </div>
-          <div class="sidebar-note">
-            <span class="note-flare" aria-hidden="true">✳</span>
-            <p>Histórias que ficam<br />um pouco depois.</p>
-            <span>SELEÇÃO FILTROX Nº 08</span>
-          </div>
-        </div>
-        <div class="sidebar-bottom"><span class="status-dot"></span><span>Uma curadoria independente</span><span class="sidebar-version">v.08</span></div>
-      </aside>
-      <div class="mobile-scrim" id="mobileScrim"></div>
-
-      <main class="main-area" id="inicio">
-        <header class="topbar">
-          <a class="topbar-brand" href="#inicio" data-nav="inicio" aria-label="FiltroX — início"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3.5 5h17l-6.7 7.2v5.4l-3.6 1.9v-7.3L3.5 5Z"/></svg><span>Filtro<span class="brand-x">X</span></span></a>
-          <button class="icon-button mobile-menu" id="menuToggle" aria-label="Abrir menu"><span class="hamburger"><i></i><i></i></span></button>
-          <div class="topbar-crumb"><span>FILTROX</span><b>/</b><strong id="crumbTitle">DESCOBRIR</strong></div>
-          <label class="search-box" for="searchInput"><span class="search-icon" aria-hidden="true"></span><input id="searchInput" type="search" placeholder="Buscar títulos, temas…" autocomplete="off" /><kbd>/</kbd></label>
-          <button class="profile-button" aria-label="Perfil de demonstração" title="Perfil de demonstração">V</button>
-        </header>
-
-        <div class="content-wrap">
-          <section class="hero" id="hero" aria-labelledby="heroTitle">
-            <div class="hero-backdrop" aria-hidden="true"><div class="hero-glow"></div><div class="hero-disc"></div><div class="hero-line hero-line-one"></div><div class="hero-line hero-line-two"></div><span class="hero-vertical">FILTROX ORIGINALS&nbsp;&nbsp; — &nbsp;&nbsp; Nº 008</span><span class="hero-coordinate">23° 33' S<br />46° 38' W</span><div class="hero-orbit"></div><div class="hero-silhouette"></div><div class="hero-spark hero-spark-a"></div><div class="hero-spark hero-spark-b"></div></div>
-            <div class="hero-copy">
-              <div class="eyebrow"><span class="eyebrow-mark"></span> UMA HISTÓRIA ORIGINAL <span class="eyebrow-rule"></span> 08 MIN</div>
-              <h1 id="heroTitle">A cidade<br />não <em>dorme.</em></h1>
-              <p class="hero-description">Quando as luzes baixam, São Paulo revela outra frequência. Uma noite, três encontros e tudo o que quase passou despercebido.</p>
-              <div class="hero-meta"><span class="rating-mark">F</span><span>FILTROX ORIGINAL</span><i></i><span>CURTA</span><i></i><span>2026</span><i></i><span>12 MIN</span></div>
-              <div class="hero-actions"><button class="button button-primary" id="heroPlay"><span class="play-triangle" aria-hidden="true"></span> Assistir prévia</button><button class="button button-glass" id="heroDetails"><span class="info-ring" aria-hidden="true">i</span> Saiba mais</button></div>
-              <div class="hero-serial"><span></span> UMA SÉRIE DE PEQUENOS ACASOS</div>
-            </div>
-            <div class="hero-index"><b>01</b><span>/</span>04</div>
-            <div class="hero-bottom-line"><span>VISTO POR 2.4 MIL PESSOAS</span><span class="hero-bottom-dots"><i></i><i></i><i></i><i class="current"></i></span><span>01 — 04</span></div>
-          </section>
-
-          <section class="catalog-section" aria-labelledby="sectionTitle">
-            <div class="section-heading">
-              <div><p class="section-kicker" id="sectionKicker">A ESCOLHA DA NOITE <span>·</span> 16 NOV 2026</p><h2 id="sectionTitle">Descubra algo <em>novo.</em></h2></div>
-              <button class="text-button" id="viewAll">Ver coleção completa <span aria-hidden="true">↗</span></button>
-            </div>
-            <div class="filter-row" role="group" aria-label="Filtrar por categoria" id="filterRow">
-              <button class="filter-chip is-selected" data-category="Todos">Tudo <span>12</span></button>
-              <button class="filter-chip" data-category="Curtas">Curtas</button>
-              <button class="filter-chip" data-category="Documentário">Documentários</button>
-              <button class="filter-chip" data-category="Música">Música &amp; arte</button>
-              <button class="filter-chip" data-category="Atmosfera">Atmosfera</button>
-              <div class="sort-control"><span>ORDENAR</span><select id="sortSelect" aria-label="Ordenar vídeos"><option value="featured">Em destaque</option><option value="newest">Mais recentes</option><option value="az">A—Z</option></select><span class="sort-chevron" aria-hidden="true">⌄</span></div>
-            </div>
-            <div class="search-summary" id="searchSummary" aria-live="polite"></div>
-            <div class="video-grid" id="videoGrid" aria-live="polite"></div>
-            <div class="empty-state" id="emptyState" hidden><span class="empty-star">✳</span><h3>Nada por aqui… ainda.</h3><p>Tente outra busca ou explore uma coleção diferente.</p><button class="button button-glass" id="clearFilters">Limpar filtros</button></div>
-            <button class="load-more" id="loadMore">CARREGAR MAIS <span aria-hidden="true">＋</span></button>
-          </section>
-          <footer class="footer"><a class="footer-mark" href="#inicio">FILTROX</a><span>Histórias em movimento, feitas para ver com calma.</span><span class="footer-right">© FILTROX 2026&nbsp;&nbsp; · &nbsp;&nbsp;MADE AFTER DARK</span></footer>
-        </div>
-      </main>
-    </div>
-
-    <div class="modal-backdrop" id="detailBackdrop" hidden>
-      <section class="detail-modal" role="dialog" aria-modal="true" aria-labelledby="modalTitle">
-        <button class="modal-close" id="closeModal" aria-label="Fechar detalhes">×</button>
-        <div class="modal-art" id="modalArt"><span class="modal-art-label">FILTROX ORIGINAL</span><span class="modal-art-index">Nº 008</span></div>
-        <div class="modal-content">
-          <div class="modal-kicker" id="modalKicker">CURTA ORIGINAL</div>
-          <h2 id="modalTitle">A cidade não dorme.</h2>
-          <div class="modal-meta" id="modalMeta"></div>
-          <p class="modal-description" id="modalDescription"></p>
-          <div class="modal-tags" id="modalTags"></div>
-          <div class="modal-actions"><button class="button button-primary" id="modalPlay"><span class="play-triangle" aria-hidden="true"></span> Assistir prévia</button><button class="button button-glass" id="modalSave"><span class="save-icon">＋</span> Minha lista</button></div>
-          <div class="player-wrap" id="playerWrap" hidden>
-            <div class="player-screen"><canvas id="previewCanvas" width="960" height="540" aria-label="Prévia visual original, abstrata e sem áudio"></canvas><div class="player-stamp">PRÉVIA VISUAL · ORIGINAL FILTROX · SEM ÁUDIO</div><button class="player-center" id="centerPlay" aria-label="Reproduzir prévia"><span class="play-triangle"></span></button><div class="player-controls"><button class="player-toggle" id="playerToggle" aria-label="Reproduzir">▶</button><span class="player-time" id="playerTime">00:00 / 00:24</span><input type="range" id="playerSeek" min="0" max="24" value="0" aria-label="Posição da prévia"><button class="player-fullscreen" id="playerFullscreen" aria-label="Tela cheia">⛶</button></div></div>
-            </div>
-          <p class="modal-note">Uma prévia original, segura e não explícita, criada para este catálogo.</p>
-        </div>
+    <div class="age-gate" id="ageGate">
+      <section class="age-card" role="dialog" aria-modal="true" aria-labelledby="ageTitle">
+        <a class="brand" href="/" aria-label="FILTROX, início"><img class="brand-icon" src="/assets/filtrox-mark.svg" alt="" /><span>FILTRO<span class="brand-accent">X</span></span></a>
+        <span class="age-pill">18+</span>
+        <p class="eyebrow">BUSCA FEDERADA · PEERTUBE</p>
+        <h1 id="ageTitle">Conteúdo adulto</h1>
+        <p>Este portal apresenta buscas de vídeos sinalizados como conteúdo sexual explícito. Continue somente se tiver 18 anos ou mais e se isso for legal na sua região.</p>
+        <button class="button button-primary" id="confirmAge" type="button">Tenho 18 anos ou mais — continuar</button>
+        <p class="age-footnote">A confirmação vale apenas para esta aba e não é salva.</p>
+        <a class="leave-link" href="/catalog/">Voltar ao catálogo FILTROX</a>
       </section>
     </div>
-    <div class="toast" id="toast" role="status" aria-live="polite"></div>
+
+    <div class="search-app" id="searchApp" hidden>
+      <header class="topbar">
+        <a class="brand" href="/" aria-label="FILTROX, início"><img class="brand-icon" src="/assets/filtrox-mark.svg" alt="" /><span>FILTRO<span class="brand-accent">X</span></span></a>
+        <nav class="top-nav" aria-label="Navegação principal">
+          <a href="#search">Buscar</a>
+          <a href="#filterPanel">Tags</a>
+          <a href="#results">Vídeos</a>
+          <a href="#source-info">Sobre</a>
+        </nav>
+        <span class="topbar-label"><i></i> SEPIASEARCH <b>18+</b></span>
+      </header>
+
+      <main class="page-wrap">
+        <section class="search-intro" id="search" aria-labelledby="pageTitle">
+          <p class="eyebrow"><span class="eyebrow-mark"></span> BUSCA FEDERADA <span class="eyebrow-separator">/</span> CONTEÚDO 18+</p>
+          <h1 id="pageTitle">Buscar vídeos</h1>
+          <p class="intro-copy">Pesquise no índice SepiaSearch. As tags relacionadas aparecem somente a partir dos resultados carregados e refinam a lista localmente.</p>
+          <form id="searchForm" class="search-form" novalidate>
+            <label class="sr-only" for="queryInput">Termo de busca</label>
+            <span class="search-icon" aria-hidden="true"></span>
+            <input id="queryInput" type="search" maxlength="200" autocomplete="off" placeholder="Ex.: ruiva, redhead…" />
+            <button class="button button-primary" type="submit" id="searchButton">Buscar vídeos</button>
+            <label class="consent-check" for="searchConsent"><input id="searchConsent" type="checkbox" /><span>Autorizo enviar este termo ao <strong>SepiaSearch</strong> para consultar vídeos.</span></label>
+            <label class="consent-check thumbnail-consent" for="thumbnailConsent"><input id="thumbnailConsent" type="checkbox" /><span>Carregar miniaturas externas (opcional). Ao aparecerem na tela, elas contatam a instância PeerTube de origem.</span></label>
+            <p class="privacy-inline">A consulta não é enviada até você marcar a autorização e pressionar “Buscar vídeos”. Busca e filtros ficam na memória desta página; miniaturas externas são opcionais e carregadas sob demanda.</p>
+            <p class="inline-message" id="searchError" role="alert" hidden></p>
+          </form>
+        </section>
+
+        <section class="notice-panel" aria-label="Aviso de conteúdo e privacidade">
+          <span class="notice-icon" aria-hidden="true">18+</span>
+          <p><strong>Apenas adultos.</strong> São exibidos somente registros marcados como públicos e com a flag <code>EXPLICIT_SEX</code>. As classificações vêm das instâncias ou de quem publicou e podem estar ausentes ou incorretas. “Público” não garante gratuidade: podem existir senha, paywall ou cobrança externa.</p>
+        </section>
+
+        <section class="results-layout" id="results" aria-label="Filtros e resultados">
+          <aside class="filter-panel" id="filterPanel" aria-label="Filtros locais"></aside>
+          <section class="results-panel" aria-labelledby="resultsTitle">
+            <div class="results-header">
+              <div><p class="eyebrow">VÍDEOS</p><h2 id="resultsTitle">Resultados da busca</h2></div>
+              <div class="results-tools"><p class="result-count" id="resultCount" role="status"></p><button class="clear-all-button" id="clearAllFilters" type="button" hidden>Limpar todos os filtros</button></div>
+            </div>
+            <p class="filter-summary" id="filterSummary" hidden></p>
+            <div class="state-card" id="resultState" role="status"></div>
+            <div class="video-grid" id="videoGrid"></div>
+            <p class="inline-message" id="paginationError" role="alert" hidden></p>
+            <div class="load-more-wrap" id="loadMoreWrap" hidden>
+              <button class="button button-secondary" type="button" id="loadMoreButton">Carregar mais</button>
+              <p>Esta ação solicita outra página para a mesma busca. Os filtros continuam locais.</p>
+            </div>
+          </section>
+        </section>
+
+        <section class="privacy-panel" id="source-info" aria-labelledby="privacyTitle">
+          <div class="privacy-symbol" aria-hidden="true">i</div>
+          <div><p class="eyebrow">ORIGEM E PRIVACIDADE</p><h2 id="privacyTitle">Você decide quando conectar.</h2>
+            <ul>
+              <li>O termo só é enviado ao SepiaSearch após sua autorização explícita e o envio do formulário; ele vai no parâmetro <code>search</code> da requisição GET. A URL exibida pela página não muda, e busca, filtros e resultados não são gravados em cookies nem no armazenamento local.</li>
+              <li>Não há analytics. Se você autorizar miniaturas, elas carregam sob demanda quando os cards se aproximam da tela e contatam o host da imagem; abrir o player ou o link original também contata a instância PeerTube.</li>
+              <li>O player incorporado só é carregado após clicar em “Reproduzir aqui”, sem autoplay. Se falhar, use o link para abrir o PeerTube original.</li>
+            </ul>
+          </div>
+          <a href="https://sepiasearch.org/" target="_blank" rel="noopener noreferrer">SepiaSearch <span aria-hidden="true">↗</span></a>
+        </section>
+      </main>
+
+      <footer class="footer">
+        <a class="footer-brand" href="/" aria-label="FILTROX, início"><img class="footer-logo" src="/assets/filtrox-mark.svg" alt="" /><span>FILTROX</span></a>
+        <span>Busca federada · filtros locais · player sob demanda</span>
+        <a class="footer-catalog" href="/catalog/">Catálogo</a>
+        <a href="#search">Voltar ao topo ↑</a>
+      </footer>
+    </div>
   </body>
 </html>

@@ -17,3 +17,23 @@
 .search-form{display:grid;grid-template-columns:auto minmax(0,1fr) auto;align-items:center}.search-form>.consent-check,.search-form>.privacy-inline,.search-form>.inline-message{grid-column:1/-1}.search-form>.consent-check{margin-top:2px}.search-form>.privacy-inline{padding-left:35px}
 @media(max-width:680px){.search-form>.privacy-inline{padding-left:10px}}
 @media(max-width:350px){.topbar{gap:6px;padding:0 10px}.top-nav{gap:6px}.topbar-label{gap:4px;font-size:0;letter-spacing:0}.topbar-label b{font-size:8px}}
+
+
+/* Identidade visual oficial FiltroX nos pontos de marca do template. */
+.brand-icon{width:34px;height:34px;display:block;flex:0 0 auto;object-fit:contain;border-radius:8px;background:transparent}
+.footer-brand{display:inline-flex;align-items:center;gap:8px;color:#eee;font-size:12px;font-weight:800;letter-spacing:.6px;text-decoration:none}
+.footer-logo{width:25px;height:25px;display:block;flex:0 0 auto;object-fit:contain}
+.footer-brand:hover{color:#fff}
+.footer-catalog{color:#aaa;font-size:10px;text-decoration:none}
+.footer-catalog:hover{color:#fff}
+.poster-mark{display:block;padding:0;background:transparent;object-fit:contain}
+@media(max-width:680px){.brand-icon{width:27px;height:27px}.footer-brand span{width:auto;order:initial}}
+
+@media(max-width:560px){
+  .topbar{height:auto;min-height:0;display:grid;grid-template-columns:minmax(0,1fr) auto;gap:0 10px;padding:0 14px}
+  .topbar>.brand{grid-column:1;grid-row:1;min-height:54px}
+  .topbar-label{grid-column:2;grid-row:1;margin-left:0;gap:5px;font-size:7px;letter-spacing:.02em}
+  .top-nav{grid-column:1/-1;grid-row:2;width:calc(100% + 28px);min-height:39px;margin:0 -14px;padding:0 14px;gap:22px;overflow-x:auto;border-top:1px solid #222;scrollbar-width:none}
+  .top-nav::-webkit-scrollbar{display:none}
+  .top-nav a{min-height:39px;display:inline-flex;align-items:center;flex:0 0 auto;font-size:8px}
+}

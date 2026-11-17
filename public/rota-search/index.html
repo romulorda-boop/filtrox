@@ -5,46 +5,47 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <meta name="theme-color" content="#090909" />
     <meta name="robots" content="noindex, nofollow" />
-    <meta name="description" content="Buscador federado de vídeos PeerTube públicos sinalizados como conteúdo adulto. As consultas só são enviadas após confirmação." />
-    <title>Busca 18+ — FILTROX</title>
-    <link rel="icon" href="../assets/filtrox-mark.svg" type="image/svg+xml" />
-    <link rel="stylesheet" href="./styles.css" />
-    <script type="module" src="./app.js"></script>
+    <meta name="description" content="FILTROX — busca federada de vídeos PeerTube públicos sinalizados como conteúdo adulto, com consulta sob consentimento e filtros locais." />
+    <link rel="icon" href="/assets/filtrox-mark.svg" type="image/svg+xml" />
+    <title>FILTROX — Busca federada 18+</title>
+    <link rel="stylesheet" href="/rota-search/styles.css" />
+    <script type="module" src="/rota-search/app.js"></script>
   </head>
   <body>
     <div class="age-gate" id="ageGate">
       <section class="age-card" role="dialog" aria-modal="true" aria-labelledby="ageTitle">
-        <a class="brand" href="../" aria-label="FILTROX, início"><span class="brand-icon" aria-hidden="true">F</span><span>FILTRO<span class="brand-accent">X</span></span></a>
+        <a class="brand" href="/" aria-label="FILTROX, início"><img class="brand-icon" src="/assets/filtrox-mark.svg" alt="" /><span>FILTRO<span class="brand-accent">X</span></span></a>
         <span class="age-pill">18+</span>
         <p class="eyebrow">BUSCA FEDERADA · PEERTUBE</p>
-        <h1 id="ageTitle">Área para adultos</h1>
-        <p>Este buscador pode encontrar vídeos marcados pela origem como conteúdo sexual explícito. Continue somente se tiver 18 anos ou mais e se esse conteúdo for legal na sua região.</p>
+        <h1 id="ageTitle">Conteúdo adulto</h1>
+        <p>Este portal apresenta buscas de vídeos sinalizados como conteúdo sexual explícito. Continue somente se tiver 18 anos ou mais e se isso for legal na sua região.</p>
         <button class="button button-primary" id="confirmAge" type="button">Tenho 18 anos ou mais — continuar</button>
         <p class="age-footnote">A confirmação vale apenas para esta aba e não é salva.</p>
-        <a class="leave-link" href="../">Voltar ao catálogo FILTROX</a>
+        <a class="leave-link" href="/catalog/">Voltar ao catálogo FILTROX</a>
       </section>
     </div>
 
     <div class="search-app" id="searchApp" hidden>
       <header class="topbar">
-        <a class="brand" href="../" aria-label="FILTROX, início"><span class="brand-icon" aria-hidden="true">F</span><span>FILTRO<span class="brand-accent">X</span></span></a>
-        <nav class="top-nav" aria-label="Navegação da busca">
-          <a href="../">Catálogo</a>
+        <a class="brand" href="/" aria-label="FILTROX, início"><img class="brand-icon" src="/assets/filtrox-mark.svg" alt="" /><span>FILTRO<span class="brand-accent">X</span></span></a>
+        <nav class="top-nav" aria-label="Navegação principal">
           <a href="#search">Buscar</a>
-          <a href="#results">Resultados</a>
+          <a href="#filterPanel">Tags</a>
+          <a href="#results">Vídeos</a>
+          <a href="#source-info">Sobre</a>
         </nav>
-        <span class="topbar-label"><i></i> PEERTUBE <b>18+</b></span>
+        <span class="topbar-label"><i></i> SEPIASEARCH <b>18+</b></span>
       </header>
 
       <main class="page-wrap">
         <section class="search-intro" id="search" aria-labelledby="pageTitle">
           <p class="eyebrow"><span class="eyebrow-mark"></span> BUSCA FEDERADA <span class="eyebrow-separator">/</span> CONTEÚDO 18+</p>
-          <h1 id="pageTitle">Encontre por <em>tema.</em></h1>
-          <p class="intro-copy">Pesquise o índice público SepiaSearch. As tags são extraídas somente dos vídeos elegíveis carregados e refinam os resultados localmente.</p>
+          <h1 id="pageTitle">Buscar vídeos</h1>
+          <p class="intro-copy">Pesquise no índice SepiaSearch. As tags relacionadas aparecem somente a partir dos resultados carregados e refinam a lista localmente.</p>
           <form id="searchForm" class="search-form" novalidate>
             <label class="sr-only" for="queryInput">Termo de busca</label>
             <span class="search-icon" aria-hidden="true"></span>
-            <input id="queryInput" type="search" maxlength="200" autocomplete="off" placeholder="Digite um termo de busca…" />
+            <input id="queryInput" type="search" maxlength="200" autocomplete="off" placeholder="Ex.: ruiva, redhead…" />
             <button class="button button-primary" type="submit" id="searchButton">Buscar vídeos</button>
             <label class="consent-check" for="searchConsent"><input id="searchConsent" type="checkbox" /><span>Autorizo enviar este termo ao <strong>SepiaSearch</strong> para consultar vídeos.</span></label>
             <label class="consent-check thumbnail-consent" for="thumbnailConsent"><input id="thumbnailConsent" type="checkbox" /><span>Carregar miniaturas externas (opcional). Ao aparecerem na tela, elas contatam a instância PeerTube de origem.</span></label>
@@ -55,14 +56,14 @@
 
         <section class="notice-panel" aria-label="Aviso de conteúdo e privacidade">
           <span class="notice-icon" aria-hidden="true">18+</span>
-          <p><strong>Conteúdo adulto e classificação indicativa.</strong> São exibidos apenas registros marcados como públicos e com a flag <code>EXPLICIT_SEX</code>. As classificações vêm das instâncias ou de quem publicou e podem estar ausentes ou incorretas. “Público” não garante gratuidade: podem existir senha, paywall ou cobrança externa.</p>
+          <p><strong>Apenas adultos.</strong> São exibidos somente registros marcados como públicos e com a flag <code>EXPLICIT_SEX</code>. As classificações vêm das instâncias ou de quem publicou e podem estar ausentes ou incorretas. “Público” não garante gratuidade: podem existir senha, paywall ou cobrança externa.</p>
         </section>
 
         <section class="results-layout" id="results" aria-label="Filtros e resultados">
-          <aside class="filter-panel" id="filterPanel" aria-labelledby="filterTitle"></aside>
+          <aside class="filter-panel" id="filterPanel" aria-label="Filtros locais"></aside>
           <section class="results-panel" aria-labelledby="resultsTitle">
             <div class="results-header">
-              <div><p class="eyebrow">ÍNDICE SEPIASEARCH</p><h2 id="resultsTitle">Resultados da busca</h2></div>
+              <div><p class="eyebrow">VÍDEOS</p><h2 id="resultsTitle">Resultados da busca</h2></div>
               <div class="results-tools"><p class="result-count" id="resultCount" role="status"></p><button class="clear-all-button" id="clearAllFilters" type="button" hidden>Limpar todos os filtros</button></div>
             </div>
             <p class="filter-summary" id="filterSummary" hidden></p>
@@ -76,7 +77,7 @@
           </section>
         </section>
 
-        <section class="privacy-panel" aria-labelledby="privacyTitle">
+        <section class="privacy-panel" id="source-info" aria-labelledby="privacyTitle">
           <div class="privacy-symbol" aria-hidden="true">i</div>
           <div><p class="eyebrow">ORIGEM E PRIVACIDADE</p><h2 id="privacyTitle">Você decide quando conectar.</h2>
             <ul>
@@ -89,7 +90,12 @@
         </section>
       </main>
 
-      <footer class="footer"><a href="../">FILTROX</a><span>Busca federada · filtros locais · player sob demanda</span><a href="#search">Voltar ao topo ↑</a></footer>
+      <footer class="footer">
+        <a class="footer-brand" href="/" aria-label="FILTROX, início"><img class="footer-logo" src="/assets/filtrox-mark.svg" alt="" /><span>FILTROX</span></a>
+        <span>Busca federada · filtros locais · player sob demanda</span>
+        <a class="footer-catalog" href="/catalog/">Catálogo</a>
+        <a href="#search">Voltar ao topo ↑</a>
+      </footer>
     </div>
   </body>
 </html>

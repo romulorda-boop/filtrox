@@ -311,7 +311,11 @@ function makeVideoCard(video) {
     thumbnail.src = video.thumbnailUrl;
     poster.append(thumbnail);
   }
-  poster.append(element('span', 'poster-mark', 'F'));
+  const logo = document.createElement('img');
+  logo.className = 'poster-mark';
+  logo.src = '/assets/filtrox-mark.svg';
+  logo.alt = '';
+  poster.append(logo);
   const wordmark = element('span', 'poster-brand');
   wordmark.append(document.createTextNode('FILTRO'), element('span', 'poster-brand-accent', 'X'));
   poster.append(wordmark);
