@@ -14,8 +14,12 @@ http.createServer((request, response) => {
     response.writeHead(403); response.end('Forbidden'); return;
   }
   fs.stat(target, (error, stats) => {
-    if (error || !stats.isFile()) { response.writeHead(404, {'Content-Type':'text/plain; charset=utf-8'}); response.end('Not found'); return; }
-    response.writeHead(200, {'Content-Type': types[path.extname(target)] || 'application/octet-stream', 'Cache-Control':'no-cache'});
-    fs.createReadStream(target).pipe(response);
+    if (error) { response.writeHead(404, {'Content-Type':'text/plain; charset=utf-8'}); response.end('Not found'); return; }
+    const file = stats.isDirectory() ? path.join(target, 'index.html') : target;
+    fs.stat(file, (fileError, fileStats) => {
+      if (fileError || !fileStats.isFile() || !file.startsWith(root + path.sep)) { response.writeHead(404, {'Content-Type':'text/plain; charset=utf-8'}); response.end('Not found'); return; }
+      response.writeHead(200, {'Content-Type': types[path.extname(file)] || 'application/octet-stream', 'Cache-Control':'no-cache'});
+      fs.createReadStream(file).pipe(response);
+    });
   });
 }).listen(port, '0.0.0.0', () => console.log(`FILTROX preview listening on port ${port}`));
