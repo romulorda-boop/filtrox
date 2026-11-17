@@ -18,6 +18,22 @@
   - Verificar que os dados são lidos corretamente na interface e no console, e fazer commit e push para `Colab3`.
   - Evidência: 12 linhas CSV válidas; navegador confirmou PapaParse ativo, 12 vídeos em memória e 12 cards; busca “Maré” retorna 1 resultado e o filtro Documentário retorna 4.
 
+- [x] **Fonte externa configurável para catálogo pesado**
+  - Carregar os dados por `fetch` a partir de uma URL configurável fora do código principal.
+  - Manter o CSV de produção fora do controle de versão e usar um arquivo pequeno apenas como amostra local.
+  - Documentar CORS e a evolução para API com paginação se a leitura completa no navegador ficar pesada.
+  - Evidência: navegador confirmou `fetch` da URL configurada, PapaParse ativo, 12 registros em memória e 12 cards; a URL de produção Blob ainda depende de configuração do ambiente.
+
+- [x] **Cruzar atualizações e remoções do Azure Blob**
+  - Buscar `xvideos_up.csv` como base e `xvideos_remove.csv` como lista de remoções.
+  - Usar a URL do vídeo como chave de cruzamento e ocultar da interface os registros correspondentes às remoções.
+  - Evidência: a base real contém 13.751 linhas separadas por `;`; a lista de remoção contém 26.569 URLs em linhas `origem|url`. Teste local na interface com a base real e uma URL sintética correspondente confirmou 13.750 resultados e 1 ocultado; busca, categoria e paginação também passaram. Nos arquivos remotos atuais foram encontrados zero cruzamentos entre as URLs.
+
+- [ ] **Validar CORS na origem publicada e promover para `main`**
+  - O navegador de preview da Sandbox não conseguiu fazer `fetch` dos blobs (`TypeError: Failed to fetch`), embora os downloads via HTTP direto funcionem; validar/permitir a origem real do Azure Static Web Apps na configuração CORS do Blob.
+  - Os SAS configurados vencem em 2026-11-17 10:23Z; renová-los antes do vencimento para manter o catálogo disponível.
+  - Após a validação da origem publicada e a renovação dos SAS, mesclar `Colab3` em `main` e conferir a execução do workflow de deploy.
+
 - [x] **Grade e interações dos cards**
   - Exibir uma grade responsiva de cards de vídeo com imagem, título e metadados essenciais.
   - Implementar estados interativos de cards e controles, incluindo hover, foco e seleção.
