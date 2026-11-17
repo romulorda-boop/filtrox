@@ -108,7 +108,7 @@ async function loadVideos(){
   if(!window.Papa){showCatalogLoadError(new Error('PapaParse indisponível.'),baseUrl||location.href);return}
   if(!baseUrl||!removalUrl){showCatalogLoadError(new Error('URLs dos dois CSVs não configuradas.'),baseUrl||location.href);return}
   try{
-    const [baseResponse,removalResponse]=await Promise.all([fetch(baseUrl),fetch(removalUrl)]);
+    const [baseResponse,removalResponse]=await Promise.all([fetch(baseUrl,{cache:'no-store'}),fetch(removalUrl,{cache:'no-store'})]);
     if(!baseResponse.ok)throw new Error(`base HTTP ${baseResponse.status}`);
     if(!removalResponse.ok)throw new Error(`remoções HTTP ${removalResponse.status}`);
     const [baseText,removalText]=await Promise.all([baseResponse.text(),removalResponse.text()]);
