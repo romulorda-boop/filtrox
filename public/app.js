@@ -3,7 +3,7 @@ let featuredVideoId = null;
 let catalogStats = {base:0,removals:0,hidden:0,remaining:0};
 
 const PAGE_SIZE = 48;
-const state = {category:'Todos',nav:'inicio',query:'',sort:'featured',favorites:new Set(readFavorites()),showAll:false,page:1,current:null,playing:false,elapsed:0,raf:0,toastTimer:0};
+const state = {category:'Todos',nav:'inicio',query:'',tagFilter:'',sort:'featured',favorites:new Set(readFavorites()),showAll:false,page:1,current:null,playing:false,elapsed:0,raf:0,toastTimer:0};
 const $ = (selector, root=document) => root.querySelector(selector);
 const grid = $('#videoGrid');
 const backdrop = $('#detailBackdrop');
@@ -38,10 +38,24 @@ function stableVideoId(url){
   return `video-${(hash>>>0).toString(36)}`;
 }
 function displayCategory(value){return String(value||'Outros').replace(/[_-]+/g,' ').replace(/\b[a-z]/gi,char=>char.toUpperCase())}
+function parseOfficialTags(raw){
+  const seen=new Set();
+  return String(raw||'').split(/[|,]/).map(tag=>tag.trim()).filter(tag=>{
+    const key=tag.toLocaleLowerCase('pt-BR');
+    if(!key||seen.has(key))return false;
+    seen.add(key);return true;
+  });
+}
+function parseCsvViews(raw){
+  const digits=String(raw||'').trim().replace(/[^\d]/g,'');
+  if(!digits)return undefined;
+  const value=Number(digits);
+  return Number.isSafeInteger(value)&&value>=0?value:undefined;
+}
 function normalizeVideo(row,index,url){
   const columns=window.FILTROX_CONFIG?.baseColumns||{};
   const value=name=>String(row[columns[name]]??'').trim();
-  const tags=[...new Set(`${value('tags')},${value('cast')}`.split(/[|,]/).map(tag=>tag.trim()).filter(Boolean))].slice(0,16);
+  const tags=parseOfficialTags(value('tags'));
   const seconds=Number.parseFloat(value('duration').replace(/[^\d.]/g,''))||0;
   const uploadedAt=value('uploadedAt');
   const year=Number(uploadedAt.match(/\b(19|20)\d{2}\b/)?.[0])||0;
@@ -52,12 +66,12 @@ function normalizeVideo(row,index,url){
     creator:value('publisher')||'Fonte externa',
     category:value('category')||'Outros',
     duration:Math.max(1,Math.round(seconds/60)),
-    rating:'—',year,
+    year,
     publishedAt:uploadedAt,
     description:tags.length?`Tags: ${tags.slice(0,8).join(', ')}`:'Vídeo do catálogo',
     tags,art:`art-${(index%12)+1}`,
     badge:value('quality')||'CATÁLOGO',
-    views:Number.parseInt(value('views').replace(/[^\d]/g,''),10)||0
+    views:parseCsvViews(value('views'))
   };
 }
 function updateFeaturedVideo(video){
@@ -67,6 +81,7 @@ function updateFeaturedVideo(video){
   $('.hero-description').textContent=video.subtitle||video.description;
   $('.hero-copy .eyebrow').textContent=`FILTROX · ${displayCategory(video.category)} · ${video.duration} MIN`;
   $('.hero-meta').textContent=`${displayCategory(video.category)} · ${video.year||'—'} · ${video.badge}`;
+  $('#heroViews').textContent=Number.isFinite(video.views)?`${new Intl.NumberFormat('pt-BR').format(video.views)} VISUALIZAÇÕES`:'VISUALIZAÇÕES NÃO INFORMADAS';
   $('.hero-serial').textContent='CATÁLOGO FILTROX';
 }
 function renderCategoryFilters(){
@@ -85,15 +100,36 @@ function renderCategoryFilters(){
   };
   createChip('Todos','Tudo',state.category==='Todos',videos.length);
   categories.forEach(category=>createChip(category,displayCategory(category),state.category===category));
-  const sideButtons=[...document.querySelectorAll('[data-filter]')];
-  sideButtons.forEach((button,index)=>{
-    const category=categories[index];
-    button.hidden=!category;
-    if(!category)return;
-    button.dataset.filter=category;
-    const icon=button.querySelector('.nav-icon');
-    button.replaceChildren(...(icon?[icon]:[]),document.createTextNode(displayCategory(category)));
-  });
+}
+function renderTagList(){
+  const frequencies=new Map();
+  for(const video of videos){
+    const seen=new Set();
+    for(const name of video.tags){
+      const key=name.toLocaleLowerCase('pt-BR');
+      if(!key||seen.has(key))continue;
+      seen.add(key);
+      const current=frequencies.get(key);
+      if(current)current.count++;
+      else frequencies.set(key,{name,key,count:1});
+    }
+  }
+  const tags=[...frequencies.values()].sort((a,b)=>b.count-a.count||a.name.localeCompare(b.name,'pt-BR'));
+  const query=$('#tagSearchInput').value.trim().toLocaleLowerCase('pt-BR');
+  const matching=tags.filter(tag=>tag.name.toLocaleLowerCase('pt-BR').includes(query));
+  const list=$('#catalogTagList');
+  list.replaceChildren();
+  for(const tag of matching){
+    const button=document.createElement('button');
+    button.type='button';button.className='tag-entry';button.dataset.catalogTag=tag.name;
+    const label=document.createElement('span');label.textContent=tag.name;
+    const count=document.createElement('span');count.className='tag-entry-count';count.textContent=tag.count.toLocaleString('pt-BR');
+    button.append(label,count);list.append(button);
+  }
+  $('#allTagsCount').textContent=tags.length.toLocaleString('pt-BR');
+  $('#allTagsCount').hidden=!tags.length;
+  $('#tagListStatus').textContent=tags.length?`${tags.length.toLocaleString('pt-BR')} tags carregadas exclusivamente do CSV oficial.`:'Nenhuma tag disponível no CSV oficial carregado.';
+  $('#tagEmpty').hidden=matching.length>0||tags.length===0;
 }
 function showCatalogLoadError(error,sourceUrl){
   console.error(`[FILTROX] Falha ao carregar ${safeSourceLabel(sourceUrl)} (${error?.name||'erro'}).`);
@@ -138,6 +174,7 @@ async function loadVideos(){
     if(!videos.length)throw new Error('Nenhum registro restante após cruzar as remoções.');
     updateFeaturedVideo(videos[0]);
     renderCategoryFilters();
+    renderTagList();
     console.info(`[FILTROX] base=${catalogStats.base}; remoções=${catalogStats.removals}; ocultados=${catalogStats.hidden}; exibidos=${catalogStats.remaining}.`);
     render();
   }catch(error){showCatalogLoadError(error,baseUrl)}
@@ -145,12 +182,22 @@ async function loadVideos(){
 function visibleVideos(){
   let items=[...videos];
   if(state.nav==='favoritos') items=items.filter(v=>state.favorites.has(v.id));
-  if(state.nav==='recentes') items=items.filter(v=>v.year===Math.max(0,...videos.map(video=>video.year)));
   if(state.category!=='Todos') items=items.filter(v=>v.category===state.category);
   if(state.query){const q=state.query.toLocaleLowerCase('pt-BR');items=items.filter(v=>[v.title,v.subtitle,v.creator,v.category,v.description,...v.tags].join(' ').toLocaleLowerCase('pt-BR').includes(q))}
-  if(state.sort==='newest') items.sort((a,b)=>(Date.parse(b.publishedAt)||0)-(Date.parse(a.publishedAt)||0) || a.title.localeCompare(b.title,'pt-BR'));
+  if(state.tagFilter){const selected=state.tagFilter.toLocaleLowerCase('pt-BR');items=items.filter(v=>v.tags.some(tag=>tag.toLocaleLowerCase('pt-BR')===selected))}
+  const byTitle=(a,b)=>a.title.localeCompare(b.title,'pt-BR');
+  if(state.sort==='newest') items.sort((a,b)=>{
+    const aDate=Date.parse(a.publishedAt),bDate=Date.parse(b.publishedAt);
+    const aHasDate=Number.isFinite(aDate),bHasDate=Number.isFinite(bDate);
+    if(aHasDate!==bHasDate)return aHasDate?-1:1;
+    return aHasDate&&aDate!==bDate?bDate-aDate:byTitle(a,b);
+  });
+  if(state.sort==='views') items.sort((a,b)=>{
+    const aHasViews=Number.isFinite(a.views),bHasViews=Number.isFinite(b.views);
+    if(aHasViews!==bHasViews)return aHasViews?-1:1;
+    return aHasViews&&a.views!==b.views?b.views-a.views:byTitle(a,b);
+  });
   if(state.sort==='az') items.sort((a,b)=>a.title.localeCompare(b.title,'pt-BR'));
-  if(state.nav==='em-alta'&&state.sort==='featured') items.sort((a,b)=>b.views-a.views);
   return items;
 }
 function posterMarkup(video){return `<div class="card-cover ${video.art}" role="img" aria-label="Arte abstrata original de ${escapeHtml(video.title)}"><span class="art-shape shape-a"></span><span class="art-shape shape-b"></span><span class="art-shape shape-c"></span><div class="cover-topline"><span class="cover-series">FILTROX · ${escapeHtml(video.badge)}</span><span class="cover-duration">${video.duration} MIN</span></div><span class="cover-bottom">Nº ${String(video.ordinal).padStart(2,'0')} &nbsp;—&nbsp; ${escapeHtml(displayCategory(video.category).toUpperCase())}</span><button class="cover-play" data-open="${video.id}" aria-label="Abrir ${escapeHtml(video.title)}"><span class="play-triangle"></span></button></div>`}
@@ -158,7 +205,7 @@ function escapeHtml(value){return String(value).replace(/[&<>"']/g,char=>({'&':'
 function render(){
   const items=visibleVideos();
   const shown=items.slice(0,state.page*PAGE_SIZE);
-  grid.innerHTML=shown.map((v,index)=>`<article class="video-card" style="animation-delay:${Math.min(index*15,250)}ms">${posterMarkup(v)}<div class="card-info"><div><button class="card-title-button" data-open="${v.id}">${escapeHtml(v.title)}</button><p class="card-subtitle">${escapeHtml(v.subtitle)}</p><p class="card-type">${escapeHtml(displayCategory(v.category))} <i></i> ${v.year||'—'}</p></div><div class="card-side"><span class="card-rating"><span>✳</span> ${escapeHtml(v.rating)}</span><button class="save-button ${state.favorites.has(v.id)?'is-saved':''}" data-save="${v.id}" aria-label="${state.favorites.has(v.id)?'Remover':'Adicionar'} ${escapeHtml(v.title)} ${state.favorites.has(v.id)?'da':'à'} minha lista" aria-pressed="${state.favorites.has(v.id)}">${state.favorites.has(v.id)?'♥':'＋'}</button></div></div></article>`).join('');
+  grid.innerHTML=shown.map((v,index)=>`<article class="video-card" style="animation-delay:${Math.min(index*15,250)}ms">${posterMarkup(v)}<div class="card-info"><div><button class="card-title-button" data-open="${v.id}">${escapeHtml(v.title)}</button><p class="card-subtitle">${escapeHtml(v.subtitle)}</p><p class="card-type">${escapeHtml(displayCategory(v.category))} <i></i> ${v.year||'—'}</p></div><div class="card-side"><button class="save-button ${state.favorites.has(v.id)?'is-saved':''}" data-save="${v.id}" aria-label="${state.favorites.has(v.id)?'Remover':'Adicionar'} ${escapeHtml(v.title)} ${state.favorites.has(v.id)?'da':'à'} minha lista" aria-pressed="${state.favorites.has(v.id)}">${state.favorites.has(v.id)?'♥':'＋'}</button></div></div></article>`).join('');
   $('#emptyState').hidden=items.length>0;
   $('#loadMore').hidden=shown.length>=items.length;
   $('#loadMore').innerHTML=`CARREGAR MAIS (${Math.max(0,items.length-shown.length).toLocaleString('pt-BR')}) <span aria-hidden="true">＋</span>`;
@@ -167,7 +214,7 @@ function render(){
   const chip=$('#filterRow .filter-chip[data-category="Todos"] span'); if(chip)chip.textContent=String(items.length);
 }
 function setNav(nav,label){
-  state.nav=nav;state.category='Todos';state.page=1;
+  state.nav=nav;state.category='Todos';state.tagFilter='';state.page=1;
   document.querySelectorAll('.nav-link').forEach(el=>el.classList.toggle('is-active',el.dataset.nav===nav));
   document.querySelectorAll('.filter-chip').forEach(el=>el.classList.toggle('is-selected',el.dataset.category==='Todos'));
   const labels={'inicio':'DESCOBRIR','em-alta':'EM ALTA','recentes':'ADICIONADOS','favoritos':'MINHA LISTA'};
@@ -181,7 +228,7 @@ function setNav(nav,label){
   closeMobileNav();render();
 }
 function setCategory(category){
-  state.nav='inicio';state.category=category;state.page=1;
+  state.nav='inicio';state.category=category;state.tagFilter='';state.page=1;
   document.querySelectorAll('.nav-link').forEach(el=>el.classList.remove('is-active'));
   document.querySelectorAll('.filter-chip').forEach(el=>el.classList.toggle('is-selected',el.dataset.category===category));
   $('#crumbTitle').textContent=category==='Todos'?'DESCOBRIR':category.toUpperCase();
@@ -201,7 +248,7 @@ function openDetails(id){
   state.current=v;state.elapsed=0;pausePreview();playerWrap.hidden=true;
   $('#modalKicker').textContent=`${v.category.toUpperCase()} ORIGINAL · ${v.badge}`;
   $('#modalTitle').textContent=v.title;
-  $('#modalMeta').innerHTML=`<span>FILTROX ORIGINALS</span><i></i><span>${v.year}</span><i></i><span>${v.duration} MIN</span><i></i><span>✳ ${v.rating}</span>`;
+  $('#modalMeta').innerHTML=`<span>FILTROX ORIGINALS</span><i></i><span>${v.year||'—'}</span><i></i><span>${v.duration} MIN</span>`;
   $('#modalDescription').textContent=v.description;
   $('#modalTags').innerHTML=v.tags.map(tag=>`<span class="modal-tag">${escapeHtml(tag.toUpperCase())}</span>`).join('');
   const art=$('#modalArt');art.className=`modal-art ${v.art}`;art.innerHTML=`<span class="modal-art-label">FILTROX ORIGINAL</span><span class="modal-art-index">Nº ${String(videos.indexOf(v)+1).padStart(2,'0')}</span><span class="art-shape shape-a"></span><span class="art-shape shape-b"></span><span class="art-shape shape-c"></span>`;
@@ -235,11 +282,42 @@ grid.addEventListener('click',event=>{const save=event.target.closest('[data-sav
 document.querySelectorAll('[data-nav]').forEach(el=>el.addEventListener('click',()=>setNav(el.dataset.nav,el.textContent.trim())));
 document.querySelectorAll('[data-filter]').forEach(el=>el.addEventListener('click',()=>setCategory(el.dataset.filter)));
 $('#filterRow').addEventListener('click',event=>{const chip=event.target.closest('.filter-chip');if(chip)setCategory(chip.dataset.category)});
-$('#searchInput').addEventListener('input',event=>{state.query=event.target.value.trim();state.page=1;render()});
-$('#sortSelect').addEventListener('change',event=>{state.sort=event.target.value;state.page=1;render()});
+$('#searchInput').addEventListener('input',event=>{state.query=event.target.value.trim();state.tagFilter='';state.page=1;render()});
+$('#sortSelect').addEventListener('change',event=>{state.sort=event.target.value;state.page=1;document.querySelectorAll('[data-sort]').forEach(item=>item.setAttribute('aria-pressed',String(item.dataset.sort===state.sort)));render()});
+document.querySelectorAll('[data-sort]').forEach(button=>button.addEventListener('click',()=>{
+  const sort=button.dataset.sort;
+  if(!['newest','views'].includes(sort))return;
+  state.sort=sort;state.page=1;
+  $('#sortSelect').value=sort;
+  document.querySelectorAll('[data-sort]').forEach(item=>item.setAttribute('aria-pressed',String(item===button)));
+  const labels={newest:['MAIS RECENTES','Mais recentes <em>primeiro.</em>'],views:['MAIS VISTOS','Mais vistos <em>primeiro.</em>']};
+  const heading=labels[sort];$('#crumbTitle').textContent=heading[0];$('#sectionKicker').innerHTML=`${heading[0]} <span>·</span> DADOS DO CSV OFICIAL`;
+  $('#sectionTitle').innerHTML=heading[1];$('#hero').hidden=true;closeMobileNav();render();
+}));
+$('#allTagsToggle').addEventListener('click',()=>{
+  const panel=$('#allTagsPanel'),open=panel.hidden;
+  panel.hidden=!open;$('#allTagsToggle').setAttribute('aria-expanded',String(open));
+  if(open)$('#tagSearchInput').focus();
+});
+$('#tagSearchInput').addEventListener('input',renderTagList);
+$('#catalogTagList').addEventListener('click',event=>{
+  const button=event.target.closest('[data-catalog-tag]');if(!button)return;
+  const tag=button.dataset.catalogTag;
+  const official=videos.some(video=>video.tags.some(item=>item.toLocaleLowerCase('pt-BR')===tag.toLocaleLowerCase('pt-BR')));
+  if(!official)return;
+  state.nav='inicio';state.category='Todos';state.tagFilter=tag;state.query=tag;state.sort='featured';state.page=1;
+  $('#searchInput').value=tag;$('#sortSelect').value='featured';
+  document.querySelectorAll('[data-sort]').forEach(item=>item.setAttribute('aria-pressed','false'));
+  document.querySelectorAll('.nav-link').forEach(el=>el.classList.remove('is-active'));
+  document.querySelectorAll('.filter-chip').forEach(el=>el.classList.toggle('is-selected',el.dataset.category==='Todos'));
+  $('#crumbTitle').textContent=`TAG · ${tag.toLocaleUpperCase('pt-BR')}`;
+  $('#sectionKicker').innerHTML=`TAG OFICIAL <span>·</span> CSV DO CATÁLOGO`;
+  $('#sectionTitle').textContent=tag;$('#hero').hidden=true;closeMobileNav();render();
+  $('#sectionTitle').scrollIntoView({behavior:'smooth',block:'nearest'});
+});
 $('#viewAll').addEventListener('click',()=>{setCategory('Todos');$('#sectionTitle').scrollIntoView({behavior:'smooth',block:'start'})});
 $('#loadMore').addEventListener('click',()=>{state.page++;render()});
-$('#clearFilters').addEventListener('click',()=>{$('#searchInput').value='';state.query='';state.sort='featured';$('#sortSelect').value='featured';setCategory('Todos')});
+$('#clearFilters').addEventListener('click',()=>{$('#searchInput').value='';state.query='';state.tagFilter='';state.sort='featured';$('#sortSelect').value='featured';document.querySelectorAll('[data-sort]').forEach(item=>item.setAttribute('aria-pressed','false'));setCategory('Todos')});
 $('#heroPlay').addEventListener('click',()=>featuredVideoId&&openDetails(featuredVideoId));
 $('#heroDetails').addEventListener('click',()=>featuredVideoId&&openDetails(featuredVideoId));
 $('#closeModal').addEventListener('click',closeDetails);

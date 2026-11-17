@@ -21,21 +21,29 @@
         </a>
         <div class="sidebar-scroll">
           <div class="nav-group">
-            <p class="nav-label">EXPLORAR</p>
-            <button class="nav-link is-active" data-nav="inicio"><span class="nav-icon icon-home" aria-hidden="true"></span>Início</button>
-            <button class="nav-link" data-nav="em-alta"><span class="nav-icon icon-trend" aria-hidden="true"></span>Em alta <span class="nav-badge">4</span></button>
-            <button class="nav-link" data-nav="recentes"><span class="nav-icon icon-clock" aria-hidden="true"></span>Adicionados</button>
-            <a class="nav-link nav-link-external" href="/rota-search/" aria-label="Abrir buscador PeerTube para maiores de 18 anos"><span class="nav-icon icon-trend" aria-hidden="true"></span>Busca SepiaSearch <span class="nav-badge">18+</span></a>
-          </div>
-          <div class="nav-group">
-            <p class="nav-label">COLEÇÕES</p>
-            <button class="nav-link" data-filter="Curtas"><span class="nav-icon icon-spark" aria-hidden="true"></span>Curtas</button>
-            <button class="nav-link" data-filter="Documentário"><span class="nav-icon icon-eye" aria-hidden="true"></span>Documentários</button>
-            <button class="nav-link" data-filter="Música"><span class="nav-icon icon-note" aria-hidden="true"></span>Música &amp; arte</button>
+            <p class="nav-label">ORDENAR E EXPLORAR</p>
+            <button class="nav-link" type="button" data-sort="newest" aria-pressed="false"><span class="nav-icon icon-clock" aria-hidden="true"></span>Mais recentes</button>
+            <button class="nav-link" type="button" data-sort="views" aria-pressed="false"><span class="nav-icon icon-trend" aria-hidden="true"></span>Mais vistos</button>
+            <button class="nav-link nav-link-disabled" type="button" disabled aria-describedby="commentsSortUnavailable"><span class="nav-icon icon-comment" aria-hidden="true"></span>Mais comentados<span class="nav-status">INDISPONÍVEL</span></button>
+            <button class="nav-link nav-link-disabled" type="button" disabled aria-describedby="ratingSortUnavailable"><span class="nav-icon icon-spark" aria-hidden="true"></span>Melhor avaliação<span class="nav-status">INDISPONÍVEL</span></button>
+            <button class="nav-link tag-toggle" id="allTagsToggle" type="button" aria-expanded="false" aria-controls="allTagsPanel"><span class="nav-icon icon-tag" aria-hidden="true"></span>Todas as tags<span class="nav-badge" id="allTagsCount" hidden></span><span class="tag-chevron" aria-hidden="true">⌄</span></button>
+            <div class="tag-panel" id="allTagsPanel" hidden>
+              <label class="sr-only" for="tagSearchInput">Filtrar a lista de tags oficiais</label>
+              <input class="tag-search-input" id="tagSearchInput" type="search" placeholder="Filtrar tags…" autocomplete="off" />
+              <p class="tag-source-note" id="tagListStatus">As tags serão carregadas do CSV oficial.</p>
+              <div class="tag-list" id="catalogTagList" role="group" aria-label="Tags do CSV oficial"></div>
+              <p class="tag-empty" id="tagEmpty" hidden>Nenhuma tag correspondente no CSV oficial.</p>
+            </div>
+            <p class="sr-only" id="commentsSortUnavailable">O CSV oficial atual não fornece um campo de contagem de comentários.</p>
+            <p class="sr-only" id="ratingSortUnavailable">O CSV oficial atual não fornece um campo de avaliação numérica.</p>
           </div>
           <div class="nav-group nav-group-library">
             <p class="nav-label">SUA BIBLIOTECA</p>
             <button class="nav-link" data-nav="favoritos"><span class="nav-icon icon-heart" aria-hidden="true"></span>Minha lista<span class="saved-count" id="savedCount">0</span></button>
+          </div>
+          <div class="nav-group">
+            <p class="nav-label">OUTROS</p>
+            <a class="nav-link nav-link-external" href="/rota-search/" aria-label="Abrir buscador PeerTube para maiores de 18 anos"><span class="nav-icon icon-trend" aria-hidden="true"></span>Busca SepiaSearch <span class="nav-badge">18+</span></a>
           </div>
           <div class="sidebar-note">
             <span class="note-flare" aria-hidden="true">✳</span>
@@ -67,8 +75,7 @@
               <div class="hero-actions"><button class="button button-primary" id="heroPlay"><span class="play-triangle" aria-hidden="true"></span> Assistir prévia</button><button class="button button-glass" id="heroDetails"><span class="info-ring" aria-hidden="true">i</span> Saiba mais</button></div>
               <div class="hero-serial"><span></span> UMA SÉRIE DE PEQUENOS ACASOS</div>
             </div>
-            <div class="hero-index"><b>01</b><span>/</span>04</div>
-            <div class="hero-bottom-line"><span>VISTO POR 2.4 MIL PESSOAS</span><span class="hero-bottom-dots"><i></i><i></i><i></i><i class="current"></i></span><span>01 — 04</span></div>
+            <div class="hero-bottom-line"><span id="heroViews">VISUALIZAÇÕES NÃO INFORMADAS</span><span>ORDEM DOS DADOS DO CATÁLOGO</span></div>
           </section>
 
           <section class="catalog-section" aria-labelledby="sectionTitle">
@@ -77,12 +84,7 @@
               <button class="text-button" id="viewAll">Ver coleção completa <span aria-hidden="true">↗</span></button>
             </div>
             <div class="filter-row" role="group" aria-label="Filtrar por categoria" id="filterRow">
-              <button class="filter-chip is-selected" data-category="Todos">Tudo <span>12</span></button>
-              <button class="filter-chip" data-category="Curtas">Curtas</button>
-              <button class="filter-chip" data-category="Documentário">Documentários</button>
-              <button class="filter-chip" data-category="Música">Música &amp; arte</button>
-              <button class="filter-chip" data-category="Atmosfera">Atmosfera</button>
-              <div class="sort-control"><span>ORDENAR</span><select id="sortSelect" aria-label="Ordenar vídeos"><option value="featured">Em destaque</option><option value="newest">Mais recentes</option><option value="az">A—Z</option></select><span class="sort-chevron" aria-hidden="true">⌄</span></div>
+              <div class="sort-control"><span>ORDENAR</span><select id="sortSelect" aria-label="Ordenar vídeos"><option value="featured">Em destaque</option><option value="newest">Mais recentes</option><option value="views">Mais vistos</option><option value="az">A—Z</option></select><span class="sort-chevron" aria-hidden="true">⌄</span></div>
             </div>
             <div class="search-summary" id="searchSummary" aria-live="polite"></div>
             <div class="video-grid" id="videoGrid" aria-live="polite"></div>

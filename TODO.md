@@ -38,6 +38,24 @@
   - Homepage/template, logos e rota `/catalog/` enviados no commit `0db1c15` (`feat: align FiltroX homepage with template`).
   - Evidência: workflow Azure Static Web Apps CI/CD `44014052448` concluiu com sucesso para esse commit.
 
+## Implementação aprovada — `/catalog/`
+
+- [x] **Ordenação do menu lateral por campos oficiais**
+  - Exibir “Mais recentes”, “Mais vistos”, “Mais comentados”, “Melhor avaliação” e “Todas as tags”.
+  - Ordenar “Mais recentes” por `uploadedAt` (coluna 12) e “Mais vistos” por `views` (coluna 7).
+  - Manter “Mais comentados” e “Melhor avaliação” visíveis, porém desabilitados e identificados como indisponíveis enquanto não houver campos reais para essas métricas no CSV oficial. Não inventar dados.
+  - Evidência: testes com CSV simulado confirmaram ordem por visualizações e data; métricas sem campo aparecem desabilitadas.
+
+- [x] **Tags exclusivamente da coluna oficial de tags**
+  - Derivar a lista apenas da coluna `tags` (coluna 5) de `xvideos_up.csv`, depois de aplicar a lista oficial de remoções. Não usar elenco, categorias, amostras locais ou termos fixos para gerar tags.
+  - Disponibilizar a lista completa em uma seção expansível; cada tag deve corresponder a um valor existente no CSV e, ao ser selecionada, deve reutilizar a busca atual para mostrar vídeos relacionados.
+  - Evidência: teste com CSV e remoções simulados confirmou fonte exclusiva da coluna 5, filtro exato por tag e ausência de tags do elenco ou de vídeo removido.
+
+- [x] **Busca existente e layout responsivo preservados**
+  - Manter funcionando a busca textual atual do catálogo e os demais controles existentes.
+  - Adaptar o novo menu e a lista de tags para desktop e celular, sem sobreposição ou overflow horizontal.
+  - Evidência: busca manual por título/elenco seguiu ativa; Playwright confirmou abertura do menu e ausência de overflow horizontal em viewport de 390 px.
+
 ## Pendências operacionais
 
 - [ ] **Confirmar CORS na origem publicada e renovar os SAS**

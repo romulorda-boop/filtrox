@@ -117,3 +117,27 @@ body{background:var(--bg);color:var(--text)}
 .footer-mark{display:inline-flex;align-items:center;gap:8px}
 .footer-mark-logo{width:25px;height:25px;display:block;flex:0 0 auto;object-fit:contain}
 @media(max-width:590px){.topbar-brand img{width:18px;height:18px}}
+
+
+/* Catálogo: navegação por ordenação e tags oficiais */
+.icon-comment::before{content:'◌';font-style:normal}
+.icon-tag::before{content:'#';font:700 14px var(--mono);color:var(--accent)}
+.nav-link[aria-pressed="true"]{background:#201617;color:#f1eeea}
+.nav-link-disabled,.nav-link-disabled:hover{color:#77736e;cursor:not-allowed;background:transparent;opacity:.68}
+.nav-link-disabled .nav-icon{opacity:.55}
+.nav-status{margin-left:auto;max-width:72px;text-align:right;color:#8f7775;font:7px/1.2 var(--mono);letter-spacing:.2px}
+.tag-toggle .tag-chevron{margin-left:4px;color:#858079;transition:transform .2s ease}
+.tag-toggle[aria-expanded="true"] .tag-chevron{transform:rotate(180deg)}
+.tag-panel{margin:5px 0 11px 10px;padding:10px 9px 9px;border-left:1px solid #382426;background:#171515;border-radius:0 5px 5px 0}
+.tag-panel[hidden]{display:none}
+.tag-search-input{width:100%;height:34px;border:1px solid #383331;border-radius:4px;background:#101010;color:#eee;padding:0 9px;font:11px var(--sans);outline:none}
+.tag-search-input:focus{border-color:#b6464b;box-shadow:0 0 0 2px #b6464b24}
+.tag-source-note,.tag-empty{margin:9px 1px;color:#8d8984;font:9px/1.45 var(--sans)}
+.tag-list{display:grid;gap:3px;max-height:38vh;overflow:auto;margin-top:6px;overscroll-behavior:contain;scrollbar-width:thin;scrollbar-color:#4a3536 transparent}
+.tag-entry{display:flex;align-items:center;justify-content:space-between;gap:8px;width:100%;min-height:31px;padding:5px 7px;border:0;border-radius:3px;background:transparent;color:#c8c3bc;text-align:left;font:10px/1.25 var(--sans);cursor:pointer}
+.tag-entry:hover,.tag-entry:focus-visible{background:#292020;color:#fff;outline:none}
+.tag-entry-count{flex:none;color:#8a817b;font:8px var(--mono)}
+.sr-only{position:absolute!important;width:1px!important;height:1px!important;padding:0!important;margin:-1px!important;overflow:hidden!important;clip:rect(0,0,0,0)!important;white-space:nowrap!important;border:0!important}
+.hero-bottom-line #heroViews{font-variant-numeric:tabular-nums}
+@media(max-width:820px){.sidebar-scroll{padding-bottom:16px}.tag-list{max-height:32vh}.nav-status{max-width:66px;font-size:6px}}
+@media(max-width:590px){.tag-panel{margin-left:4px}.tag-list{max-height:28vh}.nav-link-disabled{min-height:40px}.nav-status{max-width:70px}.sort-control{order:-1;margin-left:0}}
