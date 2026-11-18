@@ -1,1 +1,23 @@
-/data/videos.csv
+# Local secrets and environment files
+.env
+.env.*
+!.env.example
+backend/.env
+backend/.env.*
+!backend/.env.example
+
+# Python
+__pycache__/
+*.py[cod]
+.venv/
+venv/
+
+# Node / Next.js
+node_modules/
+.next/
+out/
+
+# Test, cache and editor artifacts
+.pytest_cache/
+.coverage
+.DS_Store

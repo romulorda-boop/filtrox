@@ -1,50 +1,45 @@
-# FILTROX — Cinema after dark
+# FILTROX — protótipo local, ainda não publicado
 
-Site estático FILTROX com busca local no catálogo oficial, lista dinâmica de tags e uma busca federada PeerTube preservada em rota própria.
+A branch `colab1` contém a nova aplicação local do FILTROX: frontend Next.js e backend FastAPI. O PR é para revisão; não há autorização para merge, deploy ou criação de serviço Azure. Os CSVs reais não foram baixados, abertos ou analisados. A hospedagem pública atual continua sendo a versão antiga e não foi alterada.
 
-## Páginas
+## Fontes planejadas
 
-| Rota | Conteúdo |
-| --- | --- |
-| `/` | Gate declaratório 18+, busca no catálogo oficial e lista de tags via API same-origin `/api/catalog`. |
-| `/catalog/` | Gate declaratório 18+ e catálogo editorial via API same-origin `/api/catalog`. |
-| `/rota-search/` | Busca federada SepiaSearch, com confirmação declaratória de 18 anos e autorização explícita antes de enviar cada termo. |
+**Xvideos — ativo no código.** O backend lê somente `xvideos_up.csv` e `xvideos_remove.csv` do Azure Blob, por URLs server-side de leitura e caminhos exatos. A lista de removidos é aplicada antes de busca e facetas; o SAS não chega ao navegador.
+
+**Pornhub — planejado, ainda desligado.** O SAS de leitura de `pornhub_up.csv` foi guardado em `backend/.env.local`, ignorado pelo Git. `FILTROX_ENABLE_PORNHUB=false` é o default; se alguém tentar ativá-lo, o backend falha fechado antes do Redis, SAS ou rede. Ainda falta confirmar o formato oficial do arquivo, a política de remoções e os controles de privacidade. Nenhum parser foi habilitado e nenhum arquivo Pornhub foi acessado. A documentação oficial do [portal Webmasters](https://www.pornhub.com/webmasters) e da [seção oficial de Webmasters](https://help.pornhub.com/hc/en-us/sections/4419836305043-Webmasters) não substitui a validação do formato exato do CSV.
+
+Não há scraping nem contorno de bloqueios. O botão Play abre somente uma URL HTTPS validada do Xvideos, depois de ação explícita do usuário; não há player incorporado Pornhub ativo.
+
+## Implementação e testes locais
+
+A aplicação inclui busca estrita por palavras completas, frases ordenadas, filtros, equivalências manuais, ordenação primária/secundária, paginação limitada a 30 itens e rotas server-side de histórico/favoritos isoladas por conta. O histórico pode ser apagado; o cliente não grava esses registros em `localStorage`.
+
+O carregador Xvideos tem limites de bytes/registros, streaming, remoção antes das facetas e cache. PostgreSQL remoto exige TLS; confirmação do certificado e a infraestrutura ainda precisam ser definidas. O backend exige token OIDC assinado, conta em allowlist e claim de idade acompanhada de timestamp assinado dentro do prazo. Sem provedor e claims aprovados, a autenticação falha fechada e a interface permanece desabilitada (`ready=false`).
+
+Os testes usam somente dados sintéticos, sem chamadas a Azure, Xvideos, Pornhub, provedores de login ou banco real:
+
+```bash
+PYTHONPATH=backend /tmp/filtrox-venv/bin/python -m unittest discover -s backend/tests -v
+/tmp/filtrox-venv/bin/python -m compileall -q backend/app backend/tests
+cd web && npm run lint && npm run build && npm audit --audit-level=high
+```
 
 ## Executar localmente
 
-Requisito: Node.js 18 ou superior. O servidor local inclui a rota same-origin `/api/catalog` e não exige dependências locais.
+Use `backend/.env.example` como referência. Os SAS ficam apenas no backend; nunca os copie para o frontend. A configuração local não é uma autorização para baixar os CSVs: Pornhub permanece desligado e o login/age gate ainda não têm provedores selecionados.
 
 ```bash
-npm start
+PYTHONPATH=backend /tmp/filtrox-venv/bin/uvicorn app.main:app --app-dir backend --env-file backend/.env.local --reload --port 8000
 ```
 
-Abra `http://localhost:3000`. Para usar outra porta, defina `PORT` antes de iniciar o servidor. Configure no ambiente do servidor `CATALOG_CSV_URL` e `CATALOG_REMOVAL_CSV_URL` com os SAS restritos a leitura. Não coloque esses valores em `public/`, `.env` versionado, HTML, JavaScript, assets ou logs.
+Para inspeção visual em outra sessão:
 
-## Estrutura principal
+```bash
+cd web
+npm install
+npm run dev
+```
 
-- `public/index.html` — gate 18+, busca no catálogo oficial e lista expansível de tags.
-- `public/home.js` — consulta a API same-origin, pesquisa, filtros e paginação da homepage.
-- `public/data-config.js` — somente delimitadores e índices não sensíveis das colunas dos CSVs oficiais.
-- `api/catalog/function.json` e `api/catalog/index.js` — endpoint HTTP `/api/catalog` da Azure Static Web Apps.
-- `api/catalog/catalog.js` — validação das origens, leitura e parsing dos CSVs, remoções, busca, tags e paginação.
-- `public/catalog/index.html` e `public/app.js` — gate 18+ e catálogo editorial preservado, carregado pela API same-origin.
-- `public/rota-search/` — cliente SepiaSearch, age gate, consentimentos, filtros e cartões responsivos.
-- `public/staticwebapp.config.json` — cabeçalhos e regras do Azure Static Web Apps.
-- `server.js` — servidor estático local com a API do catálogo.
-- `TODO.md` — entregas e pendências operacionais.
+## Antes de qualquer publicação
 
-## Busca principal e CSVs oficiais
-
-As rotas `/` e `/catalog/` só chamam `POST /api/catalog` depois que a pessoa confirma ter 18 anos ou mais. A função obtém os dois SAS exclusivamente de `process.env.CATALOG_CSV_URL` e `process.env.CATALOG_REMOVAL_CSV_URL`; os clientes não enviam nem recebem as URLs. Configure esses valores nas variáveis de ambiente do backend em Azure Static Web Apps **Settings / Environment variables** e use variáveis locais apenas para testes. Não use variáveis de build do frontend; as APIs gerenciadas do Static Web Apps não dão suporte a referências do Key Vault. `public/staticwebapp.config.json` fixa o runtime da API em Node.js 22. Abrir `/api/catalog` com `GET` responde HTTP 405 (a rota está registrada, mas a consulta exige `POST`); sem `ageConfirmed: true`, um `POST` responde HTTP 403. A função valida que os links sejam somente leitura e apontem aos dois blobs esperados, aplica as remoções antes de calcular resultados e tags e devolve páginas de até 48 itens para `/` ou o catálogo completo para `/catalog/`. A resposta usa `Cache-Control: no-store`; o catálogo carregado é mantido em memória pela função por até cinco minutos.
-
-`xvideos_up.csv` não tem cabeçalho e usa `;`: URL na coluna 0, título 1, duração 2, tags 5, elenco 6, visualizações 7, categoria 8, qualidade 9, canal 10 e data 12. As tags são separadas por `|` ou `,`. `xvideos_remove.csv` usa `|`; a URL removida fica na coluna 1. Vídeos removidos e URLs duplicadas não entram na busca nem nas contagens de tags. A ordenação por comentários e avaliação fica desabilitada quando essas métricas não existem no CSV.
-
-Use SAS com permissão somente de leitura e escopo restrito aos dois blobs. Mantenha-os apenas nas App Settings do servidor; nunca os registre ou os inclua em arquivos estáticos, builds ou logs. A homepage não carrega miniaturas externas automaticamente.
-
-A rota `/catalog/` preserva o catálogo editorial, mas agora usa a mesma API same-origin. A página `/rota-search/` é independente do catálogo: a consulta vai a `https://sepiasearch.org/api/v1/search/videos` apenas após a confirmação declaratória de 18 anos e a autorização explícita; filtros permanecem locais e o iframe de origem só é criado após clique.
-
-## Segurança e publicação
-
-A confirmação em `/`, `/catalog/` e `/rota-search/` é declaratória, não verifica identidade/idade e não é persistida. O campo `ageConfirmed` impede chamadas acidentais sem o clique, mas pode ser forjado e não é controle de acesso forte. Os SAS não são enviados ao navegador; a proteção real dos dados deve vir das App Settings/Key Vault e das permissões de leitura restritas.
-
-A publicação do site é disparada pelo workflow **Azure Static Web Apps CI/CD** em pushes para `main`; portanto, valide a branch e aprove as verificações de conformidade antes de fazer merge ou publicar.
+O [checklist atualizado](COMPLIANCE_CHECKLIST.md) lista os bloqueios e escolhas ainda pendentes. A aprovação recebida autoriza somente a preparação e abertura deste PR para revisão; não autoriza merge, publicação, leitura de CSV real ou recursos pagos. A hospedagem Azure Static Web Apps e o workflow atuais continuam públicos e apontam para a versão antiga. Não faça merge nem publique até concluir os bloqueios e receber autorização explícita separada; não provisionar recursos que possam gerar custo.
