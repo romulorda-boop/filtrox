@@ -201,6 +201,10 @@ async function getCatalog({
     if (!normalizedQuery) return true;
     return [item.title, item.tags.join(' '), item.cast, item.category, item.publisher].join(' ').toLocaleLowerCase('pt-BR').includes(normalizedQuery);
   });
+  if (mode === 'random') {
+    const item = filtered.length ? filtered[Math.floor(Math.random() * filtered.length)] : null;
+    return { items: item ? [item] : [], total: item ? 1 : 0 };
+  }
   sortItems(filtered, sort);
   const safeLimit = Math.max(1, Math.min(MAX_PAGE_SIZE, Math.floor(Number(limit) || 48)));
   const safeOffset = Math.max(0, Math.min(filtered.length, Math.floor(Number(offset) || 0)));

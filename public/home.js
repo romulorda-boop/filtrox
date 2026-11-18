@@ -1,10 +1,13 @@
 const filterButtons = [...document.querySelectorAll('[data-filter]')];
 const searchForm = document.querySelector('#homeSearch');
 const searchInput = document.querySelector('#homeSearchInput');
+const randomButton = document.querySelector('#homeRandom');
 const resultGrid = document.querySelector('#homeResultGrid');
 const noResults = document.querySelector('#homeNoResults');
 const resultSummary = document.querySelector('#homeResultSummary');
 const loadMoreButton = document.querySelector('#homeLoadMore');
+const popularTags = document.querySelector('#homePopularTags');
+const popularStatus = document.querySelector('#homePopularStatus');
 const tagsToggle = document.querySelector('#homeTagsToggle');
 const tagsPanel = document.querySelector('#homeTagsPanel');
 const tagsSearch = document.querySelector('#homeTagSearch');
@@ -16,21 +19,20 @@ const homeApp = document.querySelector('#homeApp');
 const confirmAgeButton = document.querySelector('#homeConfirmAge');
 const denyAgeButton = document.querySelector('#homeDenyAge');
 const ageDeniedMessage = document.querySelector('#homeAgeDenied');
-
 const PAGE_SIZE = 48;
 const TAG_PAGE_SIZE = 100;
+const POPULAR_TAGS_SIZE = 30;
 const state = {
   query: '', tag: '', sort: 'recent', tags: [], shownTags: TAG_PAGE_SIZE,
   tagsLoaded: false, tagsLoading: false, items: [], total: 0,
-  loading: false, loadingMore: false, requestId: 0, ageConfirmed: false
+  loading: false, loadingMore: false, requestId: 0, ageConfirmed: false,
+  randomSelection: false
 };
-
 function escapeHtml(value) {
   return String(value ?? '').replace(/[&<>"']/g, (char) => ({
     '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;'
   }[char]));
 }
-
 function updateSortAvailability(columns = {}) {
   const requirements = {
     commented: ['comments', 'comentários'],
@@ -47,7 +49,6 @@ function updateSortAvailability(columns = {}) {
     }
   }
 }
-
 async function requestCatalog({ mode = 'search', offset = 0, limit = PAGE_SIZE } = {}) {
   if (!state.ageConfirmed) throw new Error('Confirmação 18+ necessária.');
   const response = await fetch('/api/catalog', {
@@ -69,7 +70,6 @@ async function requestCatalog({ mode = 'search', offset = 0, limit = PAGE_SIZE }
   if (!response.ok || payload.error) throw new Error('API do catálogo indisponível.');
   return payload;
 }
-
 function renderResults() {
   resultGrid.replaceChildren(...state.items.map((item) => {
     const card = document.createElement('article');
@@ -86,15 +86,18 @@ function renderResults() {
     ? 'Carregando…'
     : `Carregar mais resultados (${Math.max(0, state.total - state.items.length).toLocaleString('pt-BR')})`;
   resultSummary.textContent = state.total
-    ? `${state.total.toLocaleString('pt-BR')} ${state.total === 1 ? 'resultado' : 'resultados'}${state.query ? ` para “${state.query}”` : ' no catálogo oficial'} · mostrando ${state.items.length.toLocaleString('pt-BR')}`
+    ? state.randomSelection
+      ? 'Uma sugestão aleatória do catálogo oficial.'
+      : `${state.total.toLocaleString('pt-BR')} ${state.total === 1 ? 'resultado' : 'resultados'}${state.query ? ` para “${state.query}”` : ' no catálogo oficial'} · mostrando ${state.items.length.toLocaleString('pt-BR')}`
     : '';
 }
-
 async function loadCatalog() {
   if (!state.ageConfirmed) return;
   const requestId = ++state.requestId;
+  randomButton.disabled = false;
   state.loading = true;
   state.loadingMore = false;
+  state.randomSelection = false;
   state.items = [];
   state.total = 0;
   resultGrid.setAttribute('aria-busy', 'true');
@@ -121,7 +124,44 @@ async function loadCatalog() {
     }
   }
 }
-
+async function loadRandomResult() {
+  if (!state.ageConfirmed || state.loading || state.loadingMore) return;
+  state.query = '';
+  state.tag = '';
+  searchInput.value = '';
+  state.randomSelection = true;
+  const requestId = ++state.requestId;
+  state.loading = true;
+  state.items = [];
+  state.total = 0;
+  randomButton.disabled = true;
+  resultGrid.setAttribute('aria-busy', 'true');
+  noResults.hidden = true;
+  loadMoreButton.hidden = true;
+  resultSummary.textContent = 'Escolhendo uma sugestão…';
+  try {
+    const payload = await requestCatalog({ mode: 'random', limit: 1 });
+    if (requestId !== state.requestId) return;
+    state.items = Array.isArray(payload.items) ? payload.items : [];
+    state.total = Number(payload.total) || 0;
+    renderResults();
+    if (!state.total) {
+      noResults.textContent = 'Nenhum item disponível no catálogo oficial.';
+      noResults.hidden = false;
+    }
+  } catch {
+    if (requestId !== state.requestId) return;
+    noResults.textContent = 'Não foi possível carregar uma sugestão. Confira a conexão e tente novamente.';
+    noResults.hidden = false;
+    resultSummary.textContent = '';
+  } finally {
+    if (requestId === state.requestId) {
+      state.loading = false;
+      randomButton.disabled = false;
+      resultGrid.removeAttribute('aria-busy');
+    }
+  }
+}
 async function loadMoreResults() {
   if (!state.ageConfirmed || state.loading || state.loadingMore || state.items.length >= state.total) return;
   const requestId = state.requestId;
@@ -144,7 +184,29 @@ async function loadMoreResults() {
     }
   }
 }
-
+function renderPopularTags() {
+  popularTags.setAttribute('aria-busy', 'false');
+  const visible = state.tags.slice(0, POPULAR_TAGS_SIZE);
+  const fragment = document.createDocumentFragment();
+  visible.forEach((item) => {
+    const button = document.createElement('button');
+    button.className = 'popular-tag';
+    button.type = 'button';
+    button.setAttribute('role', 'listitem');
+    button.dataset.officialTag = item.tag;
+    button.setAttribute('aria-label', `${item.tag}, presente em ${item.videoCount.toLocaleString('pt-BR')} vídeos`);
+    const name = document.createElement('span'); name.textContent = item.tag;
+    const count = document.createElement('span'); count.className = 'popular-tag-count'; count.textContent = item.videoCount.toLocaleString('pt-BR');
+    button.append(name, count);
+    fragment.append(button);
+  });
+  popularTags.replaceChildren(fragment);
+  if (!state.tags.length) {
+    popularStatus.textContent = 'Nenhuma tag disponível no CSV oficial carregado.';
+    return;
+  }
+  popularStatus.textContent = `${state.tags.length.toLocaleString('pt-BR')} tags na base oficial · exibindo as ${visible.length.toLocaleString('pt-BR')} com mais ocorrências.`;
+}
 function renderTags() {
   const query = tagsSearch.value.trim().toLocaleLowerCase('pt-BR');
   const matches = query
@@ -152,7 +214,6 @@ function renderTags() {
     : state.tags;
   const visible = matches.slice(0, state.shownTags);
   const fragment = document.createDocumentFragment();
-
   visible.forEach((item) => {
     const button = document.createElement('button');
     button.className = 'tag-result';
@@ -165,7 +226,6 @@ function renderTags() {
     button.append(name, count);
     fragment.append(button);
   });
-
   tagsResults.replaceChildren(fragment);
   tagsMore.hidden = visible.length >= matches.length;
   tagsMore.textContent = `Carregar mais tags (${Math.max(0, matches.length - visible.length).toLocaleString('pt-BR')})`;
@@ -173,48 +233,65 @@ function renderTags() {
     ? `${visible.length.toLocaleString('pt-BR')} de ${matches.length.toLocaleString('pt-BR')} tags encontradas nos CSVs oficiais.`
     : `${state.tags.length.toLocaleString('pt-BR')} tags encontradas nos CSVs oficiais.`;
 }
-
 async function loadOfficialTags() {
   if (!state.ageConfirmed || state.tagsLoaded || state.tagsLoading) return;
   state.tagsLoading = true;
+  popularTags.setAttribute('aria-busy', 'true');
+  popularStatus.textContent = 'Carregando categorias da base oficial…';
   tagsStatus.textContent = 'Carregando tags da base oficial e aplicando remoções…';
   try {
     const payload = await requestCatalog({ mode: 'tags', limit: 1 });
-    state.tags = Array.isArray(payload.tags) ? payload.tags : [];
+    state.tags = (Array.isArray(payload.tags) ? payload.tags : [])
+      .filter((item) => item && typeof item.tag === 'string')
+      .sort((a, b) => (Number(b.videoCount) || 0) - (Number(a.videoCount) || 0) || a.tag.localeCompare(b.tag, 'pt-BR', { sensitivity: 'base' }));
     state.tagsLoaded = true;
     const count = tagsToggle.querySelector('.tag-count');
     count.textContent = state.tags.length.toLocaleString('pt-BR');
     count.hidden = false;
+    renderPopularTags();
     renderTags();
   } catch {
+    popularTags.setAttribute('aria-busy', 'false');
+    popularStatus.textContent = 'Não foi possível carregar as categorias oficiais. Confira a conexão e tente novamente.';
     tagsStatus.textContent = 'Não foi possível carregar as tags oficiais. Confira a conexão e tente novamente.';
   } finally {
     state.tagsLoading = false;
   }
 }
-
+function selectOfficialTag(tag) {
+  if (!state.ageConfirmed || !state.tags.some((item) => item.tag === tag)) return;
+  state.query = tag;
+  state.tag = tag;
+  state.randomSelection = false;
+  searchInput.value = tag;
+  void loadCatalog();
+}
+function setSortButton(button) {
+  state.sort = button.dataset.filter;
+  state.randomSelection = false;
+  filterButtons.forEach((item) => {
+    const active = item === button;
+    item.classList.toggle('is-active', active);
+    item.setAttribute('aria-pressed', String(active));
+  });
+}
 filterButtons.forEach((button) => {
   button.addEventListener('click', () => {
     if (!state.ageConfirmed || button.disabled) return;
-    state.sort = button.dataset.filter;
+    setSortButton(button);
     state.tag = '';
-    filterButtons.forEach((item) => {
-      const active = item === button;
-      item.classList.toggle('is-active', active);
-      item.setAttribute('aria-pressed', String(active));
-    });
     void loadCatalog();
   });
 });
-
 searchForm.addEventListener('submit', (event) => {
   event.preventDefault();
   if (!state.ageConfirmed) return;
   state.query = searchInput.value.trim();
   state.tag = '';
+  state.randomSelection = false;
   void loadCatalog();
 });
-
+randomButton.addEventListener('click', () => { void loadRandomResult(); });
 loadMoreButton.addEventListener('click', () => { void loadMoreResults(); });
 tagsToggle.addEventListener('click', () => {
   const open = tagsPanel.hidden;
@@ -224,18 +301,14 @@ tagsToggle.addEventListener('click', () => {
 });
 tagsSearch.addEventListener('input', () => { state.shownTags = TAG_PAGE_SIZE; if (state.tagsLoaded) renderTags(); });
 tagsMore.addEventListener('click', () => { state.shownTags += TAG_PAGE_SIZE; renderTags(); });
-tagsResults.addEventListener('click', (event) => {
-  if (!state.ageConfirmed) return;
+popularTags.addEventListener('click', (event) => {
   const button = event.target.closest('[data-official-tag]');
-  if (!button) return;
-  const tag = button.dataset.officialTag;
-  if (!state.tags.some((item) => item.tag === tag)) return;
-  state.query = tag;
-  state.tag = tag;
-  searchInput.value = tag;
-  void loadCatalog();
+  if (button) selectOfficialTag(button.dataset.officialTag);
 });
-
+tagsResults.addEventListener('click', (event) => {
+  const button = event.target.closest('[data-official-tag]');
+  if (button) selectOfficialTag(button.dataset.officialTag);
+});
 const parameters = new URLSearchParams(window.location.search);
 const initialTag = parameters.get('tag')?.trim() || '';
 state.query = parameters.get('q')?.trim() || initialTag;
@@ -246,8 +319,8 @@ confirmAgeButton.addEventListener('click', () => {
   state.ageConfirmed = true;
   ageGate.hidden = true;
   homeApp.hidden = false;
-  searchInput.focus();
-  void loadCatalog();
+  void loadOfficialTags();
+  if (state.query || state.tag) void loadCatalog();
 });
 denyAgeButton.addEventListener('click', () => {
   ageDeniedMessage.hidden = false;
