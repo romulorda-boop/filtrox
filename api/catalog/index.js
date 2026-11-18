@@ -1,6 +1,14 @@
 const { getCatalog } = require('./catalog');
 
 module.exports = async function catalog(context, req) {
+  if (String(req.method || '').toUpperCase() !== 'POST') {
+    context.res = {
+      status: 405,
+      headers: { 'Allow': 'POST', 'Content-Type': 'application/json; charset=utf-8', 'Cache-Control': 'no-store' },
+      body: { error: 'Use POST para consultar o catálogo.' }
+    };
+    return;
+  }
   try {
     const body = req.body && typeof req.body === 'object' ? req.body : {};
     if (body.ageConfirmed !== true) {
