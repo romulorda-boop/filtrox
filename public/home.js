@@ -3,24 +3,27 @@ const searchForm = document.querySelector('#homeSearch');
 const searchInput = document.querySelector('#homeSearchInput');
 const resultGrid = document.querySelector('#homeResultGrid');
 const noResults = document.querySelector('#homeNoResults');
+const resultSummary = document.querySelector('#homeResultSummary');
+const loadMoreButton = document.querySelector('#homeLoadMore');
 const tagsToggle = document.querySelector('#homeTagsToggle');
 const tagsPanel = document.querySelector('#homeTagsPanel');
 const tagsSearch = document.querySelector('#homeTagSearch');
 const tagsStatus = document.querySelector('#homeTagStatus');
 const tagsResults = document.querySelector('#homeTagResults');
 const tagsMore = document.querySelector('#homeTagsMore');
+const ageGate = document.querySelector('#homeAgeGate');
+const homeApp = document.querySelector('#homeApp');
+const confirmAgeButton = document.querySelector('#homeConfirmAge');
+const denyAgeButton = document.querySelector('#homeDenyAge');
+const ageDeniedMessage = document.querySelector('#homeAgeDenied');
 
-const state = { query: '', sort: 'recent', tags: [], shownTags: 100, tagsLoaded: false, tagsLoading: false };
+const PAGE_SIZE = 48;
 const TAG_PAGE_SIZE = 100;
-
-function safeUrl(value) {
-  try {
-    const url = new URL(String(value || ''), window.location.origin);
-    return ['http:', 'https:'].includes(url.protocol) ? url.href : '';
-  } catch {
-    return '';
-  }
-}
+const state = {
+  query: '', tag: '', sort: 'recent', tags: [], shownTags: TAG_PAGE_SIZE,
+  tagsLoaded: false, tagsLoading: false, items: [], total: 0,
+  loading: false, loadingMore: false, requestId: 0, ageConfirmed: false
+};
 
 function escapeHtml(value) {
   return String(value ?? '').replace(/[&<>"']/g, (char) => ({
@@ -28,41 +31,118 @@ function escapeHtml(value) {
   }[char]));
 }
 
-function parseDelimitedCsv(text, delimiter = ';') {
-  const rows = []; let row = []; let field = ''; let quoted = false;
-  for (let index = 0; index < text.length; index += 1) {
-    const char = text[index]; const next = text[index + 1];
-    if (quoted) {
-      if (char === '"' && next === '"') { field += '"'; index += 1; }
-      else if (char === '"') quoted = false;
-      else field += char;
-    } else if (char === '"') quoted = true;
-    else if (char === delimiter) { row.push(field); field = ''; }
-    else if (char === '\n' || char === '\r') {
-      if (char === '\r' && next === '\n') index += 1;
-      row.push(field); field = '';
-      if (row.some((value) => value.trim())) rows.push(row);
-      row = [];
-    } else field += char;
+function updateSortAvailability(columns = {}) {
+  const requirements = {
+    commented: ['comments', 'comentários'],
+    rated: ['rating', 'avaliações']
+  };
+  for (const button of filterButtons) {
+    const requirement = requirements[button.dataset.filter];
+    if (!requirement) continue;
+    const [field, label] = requirement;
+    if (!Number.isInteger(columns[field])) {
+      button.disabled = true;
+      button.title = `Indisponível: o CSV oficial não fornece a coluna de ${label}.`;
+      button.setAttribute('aria-label', `${button.textContent.trim()}, indisponível porque o CSV oficial não fornece ${label}`);
+    }
   }
-  if (field || row.length) { row.push(field); if (row.some((value) => value.trim())) rows.push(row); }
-  return rows;
 }
 
-function normalizeUrlKey(value) {
-  const raw = String(value || '').trim();
-  if (!raw) return '';
+async function requestCatalog({ mode = 'search', offset = 0, limit = PAGE_SIZE } = {}) {
+  if (!state.ageConfirmed) throw new Error('Confirmação 18+ necessária.');
+  const response = await fetch('/api/catalog', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    cache: 'no-store',
+    body: JSON.stringify({
+      mode,
+      ageConfirmed: state.ageConfirmed,
+      query: state.query,
+      tag: state.tag,
+      sort: state.sort,
+      offset,
+      limit
+    })
+  });
+  let payload;
+  try { payload = await response.json(); } catch { throw new Error('Resposta inválida da API do catálogo.'); }
+  if (!response.ok || payload.error) throw new Error('API do catálogo indisponível.');
+  return payload;
+}
+
+function renderResults() {
+  resultGrid.replaceChildren(...state.items.map((item) => {
+    const card = document.createElement('article');
+    card.className = 'result-card';
+    const detail = [item.category, item.cast || item.publisher].filter(Boolean).join(' · ');
+    card.innerHTML = `<div class="result-thumb result-thumb-empty" aria-hidden="true"></div><div class="result-card-content"><h2>${escapeHtml(item.title)}</h2><p>${escapeHtml(item.duration || 'Duração não informada')}${detail ? ` · ${escapeHtml(detail)}` : ''}</p></div>`;
+    return card;
+  }));
+  noResults.textContent = 'Nenhum resultado encontrado';
+  noResults.hidden = state.total > 0;
+  loadMoreButton.hidden = state.items.length >= state.total;
+  loadMoreButton.disabled = state.loadingMore;
+  loadMoreButton.textContent = state.loadingMore
+    ? 'Carregando…'
+    : `Carregar mais resultados (${Math.max(0, state.total - state.items.length).toLocaleString('pt-BR')})`;
+  resultSummary.textContent = state.total
+    ? `${state.total.toLocaleString('pt-BR')} ${state.total === 1 ? 'resultado' : 'resultados'}${state.query ? ` para “${state.query}”` : ' no catálogo oficial'} · mostrando ${state.items.length.toLocaleString('pt-BR')}`
+    : '';
+}
+
+async function loadCatalog() {
+  if (!state.ageConfirmed) return;
+  const requestId = ++state.requestId;
+  state.loading = true;
+  state.loadingMore = false;
+  state.items = [];
+  state.total = 0;
+  resultGrid.setAttribute('aria-busy', 'true');
+  noResults.hidden = true;
+  loadMoreButton.hidden = true;
+  resultSummary.textContent = 'Carregando catálogo oficial…';
   try {
-    const url = new URL(raw);
-    return `${url.hostname.toLowerCase().replace(/^www\./, '')}${url.pathname.toLowerCase().replace(/\/+$/, '')}`;
+    const payload = await requestCatalog({ offset: 0, limit: PAGE_SIZE });
+    if (requestId !== state.requestId) return;
+    state.items = Array.isArray(payload.items) ? payload.items : [];
+    state.total = Number(payload.total) || 0;
+    renderResults();
   } catch {
-    return raw.replace(/\/+$/, '').toLowerCase();
+    if (requestId !== state.requestId) return;
+    resultGrid.replaceChildren();
+    noResults.textContent = 'Não foi possível carregar o catálogo oficial. Confira a conexão e a configuração dos CSVs.';
+    noResults.hidden = false;
+    loadMoreButton.hidden = true;
+    resultSummary.textContent = '';
+  } finally {
+    if (requestId === state.requestId) {
+      state.loading = false;
+      resultGrid.removeAttribute('aria-busy');
+    }
   }
 }
 
-function rowUrl(row, preferredIndex) {
-  const preferred = String(row?.[preferredIndex] || '').trim();
-  return /^https?:\/\//i.test(preferred) ? preferred : String(row?.find?.((value) => /^https?:\/\//i.test(String(value || ''))) || '').trim();
+async function loadMoreResults() {
+  if (!state.ageConfirmed || state.loading || state.loadingMore || state.items.length >= state.total) return;
+  const requestId = state.requestId;
+  state.loadingMore = true;
+  renderResults();
+  try {
+    const payload = await requestCatalog({ offset: state.items.length, limit: PAGE_SIZE });
+    if (requestId !== state.requestId) return;
+    state.items.push(...(Array.isArray(payload.items) ? payload.items : []));
+    state.total = Number(payload.total) || state.total;
+  } catch {
+    if (requestId === state.requestId) {
+      noResults.textContent = 'Não foi possível carregar mais resultados. Tente novamente.';
+      noResults.hidden = false;
+    }
+  } finally {
+    if (requestId === state.requestId) {
+      state.loadingMore = false;
+      renderResults();
+    }
+  }
 }
 
 function renderTags() {
@@ -95,96 +175,29 @@ function renderTags() {
 }
 
 async function loadOfficialTags() {
-  if (state.tagsLoaded || state.tagsLoading) return;
+  if (!state.ageConfirmed || state.tagsLoaded || state.tagsLoading) return;
   state.tagsLoading = true;
   tagsStatus.textContent = 'Carregando tags da base oficial e aplicando remoções…';
   try {
-    const config = window.FILTROX_CONFIG || {};
-    if (!config.baseCsvUrl || !config.removalCsvUrl) throw new Error('Configuração CSV indisponível');
-    const [baseResponse, removalResponse] = await Promise.all([
-      fetch(config.baseCsvUrl, { cache: 'no-store' }),
-      fetch(config.removalCsvUrl, { cache: 'no-store' })
-    ]);
-    if (!baseResponse.ok || !removalResponse.ok) throw new Error('CSV oficial indisponível');
-    const [baseText, removalText] = await Promise.all([baseResponse.text(), removalResponse.text()]);
-    const baseRows = parseDelimitedCsv(baseText, config.baseDelimiter || ';');
-    const removalRows = parseDelimitedCsv(removalText, config.removalDelimiter || '|');
-    const baseUrlColumn = Number.isInteger(config.baseUrlColumn) ? config.baseUrlColumn : 0;
-    const removalUrlColumn = Number.isInteger(config.removalUrlColumn) ? config.removalUrlColumn : 1;
-    const tagColumn = config.baseColumns?.tags;
-    const removalKeys = new Set(removalRows.map((row) => normalizeUrlKey(rowUrl(row, removalUrlColumn))).filter(Boolean));
-    if (!Number.isInteger(tagColumn) || !baseRows.length || !removalKeys.size) throw new Error('Estrutura CSV oficial inválida');
-    const videoKeys = new Set();
-    const tagCounts = new Map();
-    for (let index = 0; index < baseRows.length; index += 1) {
-      const row = baseRows[index];
-      if (index === 0 && String(row[baseUrlColumn] || '').trim().toLowerCase() === String(config.keyField || 'url').toLowerCase()) continue;
-      const videoKey = normalizeUrlKey(rowUrl(row, baseUrlColumn));
-      if (!videoKey || removalKeys.has(videoKey) || videoKeys.has(videoKey)) continue;
-      videoKeys.add(videoKey);
-      const tagsInVideo = new Map();
-      String(row[tagColumn] || '').split(/[|,]/).forEach((rawTag) => {
-        const tag = rawTag.trim();
-        const normalized = tag.toLocaleLowerCase('pt-BR');
-        if (tag && !tagsInVideo.has(normalized)) tagsInVideo.set(normalized, tag);
-      });
-      tagsInVideo.forEach((tag, normalized) => {
-        const entry = tagCounts.get(normalized);
-        if (entry) entry.videoCount += 1;
-        else tagCounts.set(normalized, { tag, videoCount: 1 });
-      });
-    }
-    state.tags = [...tagCounts.values()].sort((a, b) => a.tag.localeCompare(b.tag, 'pt-BR', { sensitivity: 'base' }));
+    const payload = await requestCatalog({ mode: 'tags', limit: 1 });
+    state.tags = Array.isArray(payload.tags) ? payload.tags : [];
     state.tagsLoaded = true;
-    tagsToggle.querySelector('.tag-count').textContent = state.tags.length.toLocaleString('pt-BR');
-    tagsToggle.querySelector('.tag-count').hidden = false;
+    const count = tagsToggle.querySelector('.tag-count');
+    count.textContent = state.tags.length.toLocaleString('pt-BR');
+    count.hidden = false;
     renderTags();
   } catch {
-    tagsStatus.textContent = 'Não foi possível carregar os CSVs oficiais. Confira a conexão e tente abrir novamente.';
+    tagsStatus.textContent = 'Não foi possível carregar as tags oficiais. Confira a conexão e tente novamente.';
   } finally {
     state.tagsLoading = false;
   }
 }
 
-function render(items) {
-  resultGrid.replaceChildren(...items.map((item) => {
-    const card = document.createElement('article');
-    card.className = 'result-card';
-    const imageUrl = safeUrl(item.thumb || item.thumb2);
-    const image = imageUrl
-      ? `<img class="result-thumb" src="${escapeHtml(imageUrl)}" alt="" loading="lazy" referrerpolicy="no-referrer" />`
-      : '<div class="result-thumb result-thumb-empty" aria-hidden="true"></div>';
-    card.innerHTML = `${image}<div class="result-card-content"><h2>${escapeHtml(item.title)}</h2><p>${escapeHtml(item.duration || 'Duração não informada')}</p></div>`;
-    const img = card.querySelector('img');
-    if (img) {
-      img.addEventListener('error', () => {
-        if (item.thumb2 && img.src !== item.thumb2) img.src = safeUrl(item.thumb2);
-        else img.replaceWith(Object.assign(document.createElement('div'), { className: 'result-thumb result-thumb-empty' }));
-      });
-    }
-    return card;
-  }));
-  noResults.hidden = items.length > 0;
-}
-
-async function loadCatalog() {
-  resultGrid.setAttribute('aria-busy', 'true');
-  const params = new URLSearchParams({ sort: state.sort });
-  if (state.query) params.set('q', state.query);
-  try {
-    const response = await fetch(`/api/catalog?${params.toString()}`, { cache: 'no-store' });
-    const payload = await response.json();
-    render(response.ok && Array.isArray(payload.items) ? payload.items : []);
-  } catch {
-    render([]);
-  } finally {
-    resultGrid.removeAttribute('aria-busy');
-  }
-}
-
 filterButtons.forEach((button) => {
   button.addEventListener('click', () => {
+    if (!state.ageConfirmed || button.disabled) return;
     state.sort = button.dataset.filter;
+    state.tag = '';
     filterButtons.forEach((item) => {
       const active = item === button;
       item.classList.toggle('is-active', active);
@@ -196,25 +209,48 @@ filterButtons.forEach((button) => {
 
 searchForm.addEventListener('submit', (event) => {
   event.preventDefault();
+  if (!state.ageConfirmed) return;
   state.query = searchInput.value.trim();
+  state.tag = '';
   void loadCatalog();
 });
 
+loadMoreButton.addEventListener('click', () => { void loadMoreResults(); });
 tagsToggle.addEventListener('click', () => {
   const open = tagsPanel.hidden;
   tagsPanel.hidden = !open;
   tagsToggle.setAttribute('aria-expanded', String(open));
   if (open) { void loadOfficialTags(); tagsSearch.focus(); }
 });
-
 tagsSearch.addEventListener('input', () => { state.shownTags = TAG_PAGE_SIZE; if (state.tagsLoaded) renderTags(); });
 tagsMore.addEventListener('click', () => { state.shownTags += TAG_PAGE_SIZE; renderTags(); });
 tagsResults.addEventListener('click', (event) => {
+  if (!state.ageConfirmed) return;
   const button = event.target.closest('[data-official-tag]');
   if (!button) return;
   const tag = button.dataset.officialTag;
   if (!state.tags.some((item) => item.tag === tag)) return;
-  window.location.assign(`/catalog/?tag=${encodeURIComponent(tag)}`);
+  state.query = tag;
+  state.tag = tag;
+  searchInput.value = tag;
+  void loadCatalog();
 });
 
-void loadCatalog();
+const parameters = new URLSearchParams(window.location.search);
+const initialTag = parameters.get('tag')?.trim() || '';
+state.query = parameters.get('q')?.trim() || initialTag;
+state.tag = initialTag;
+searchInput.value = state.query;
+updateSortAvailability(window.FILTROX_CONFIG?.baseColumns || {});
+confirmAgeButton.addEventListener('click', () => {
+  state.ageConfirmed = true;
+  ageGate.hidden = true;
+  homeApp.hidden = false;
+  searchInput.focus();
+  void loadCatalog();
+});
+denyAgeButton.addEventListener('click', () => {
+  ageDeniedMessage.hidden = false;
+  confirmAgeButton.disabled = true;
+});
+confirmAgeButton.focus();

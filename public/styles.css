@@ -11,6 +11,25 @@
 @media(max-width:590px){.topbar{padding:0 15px;gap:10px}.topbar-crumb{display:none}.search-box{width:auto;flex:1;margin-left:auto;height:33px}.search-box input{font-size:10px}.search-box kbd{display:none}.profile-button{width:27px;height:27px;flex-basis:27px}.content-wrap{padding:14px 14px 0}.hero{height:364px}.hero:before{background:linear-gradient(90deg,#171615 0%,rgba(23,22,21,.95) 50%,rgba(23,22,21,.45) 100%),linear-gradient(0deg,#171615 0%,transparent 50%)}.hero-copy{padding:34px 19px 0;max-width:340px}.hero h1{font-size:45px;margin-top:20px}.hero-description{max-width:285px;font-size:10px}.hero-meta{gap:6px;font-size:7px;flex-wrap:wrap}.hero-disc{top:48px;right:-40px;width:187px;height:187px;opacity:.64}.hero-orbit{top:112px;right:-98px;width:350px;height:148px}.hero-glow{right:-86px;top:60px}.hero-vertical,.hero-coordinate{display:none}.hero-silhouette{width:100%;height:39%;opacity:.62}.hero-index{right:16px;top:16px;font-size:9px}.hero-serial{margin-top:18px}.hero-bottom-line{left:14px;right:14px;font-size:7px}.catalog-section{padding-top:27px}.section-heading{align-items:flex-end}.section-kicker{font-size:7px;letter-spacing:1px}.section-heading h2{font-size:23px}.text-button{font-size:9px;white-space:nowrap}.filter-row{margin-top:13px;gap:6px}.filter-chip{padding:7px 9px;font-size:8px}.sort-control{display:none}.video-grid{grid-template-columns:repeat(2,minmax(0,1fr));gap:20px 10px}.card-cover{aspect-ratio:1.28/1}.card-info{padding-top:8px}.card-title-button{font-size:11px}.card-subtitle{font-size:8px}.card-type{font-size:7px;gap:5px}.cover-topline{top:7px;left:7px;right:7px}.cover-series{font-size:6px}.cover-duration{font-size:7px;padding:3px 4px}.cover-bottom{bottom:7px;left:7px;font-size:7px}.cover-play{width:33px;height:33px;opacity:1;left:auto;right:7px;top:auto;bottom:7px;transform:none;background:#e7a682dc}.video-card:hover .cover-play,.video-card:focus-within .cover-play{transform:none}.footer{flex-wrap:wrap;gap:5px 10px;padding:14px 0}.footer-right{width:100%;margin:0}.footer>span:nth-child(2){font-size:8px}.modal-backdrop{padding:10px}.detail-modal{max-height:94vh}.modal-art{min-height:150px;max-height:170px}.modal-content{padding:20px 17px 18px}.modal-content h2{font-size:25px;margin:10px 0}.modal-description{margin:13px 0;font-size:10px}.modal-tags{margin-bottom:15px}.modal-note{font-size:8px}.modal-close{right:9px;top:9px}.player-stamp{font-size:6px}.player-controls{height:27px;padding:0 7px;gap:5px}.player-time{font-size:7px}.player-center{width:39px;height:39px}.empty-state{padding:52px 15px}.search-summary{font-size:9px}}
 @media(prefers-reduced-motion:reduce){*,*::before,*::after{scroll-behavior:auto!important;animation-duration:.01ms!important;animation-iteration-count:1!important;transition-duration:.01ms!important}}
 
+#catalogApp[hidden], #catalogAgeGate[hidden] { display: none !important; }
+.catalog-age-gate { position: fixed; z-index: 1000; inset: 0; display: grid; place-items: center; min-height: 100vh; overflow: auto; padding: 24px; background: radial-gradient(circle at 50% 22%, #241114, #090909 62%); }
+.catalog-age-card { width: min(540px, 100%); padding: clamp(25px, 6vw, 48px); border: 1px solid #3b2528; border-radius: 14px; background: linear-gradient(145deg, #151515, #0f0f0f); box-shadow: 0 26px 90px #000b; }
+.catalog-age-brand { display: flex; align-items: center; gap: 10px; color: #f5f5f5; font-size: 15px; font-weight: 750; letter-spacing: .08em; }
+.catalog-age-brand span { padding: 4px 7px; border-radius: 3px; background: #e50914; color: #fff; font: 700 10px var(--sans); letter-spacing: .04em; }
+.catalog-age-kicker { margin: 35px 0 8px; color: #ff6b72; font: 10px var(--mono); letter-spacing: .16em; }
+.catalog-age-card h1 { margin: 0 0 14px; color: #fff; font: 600 clamp(25px, 5vw, 34px)/1.2 var(--sans); letter-spacing: -.04em; }
+.catalog-age-card #catalogAgeDescription { max-width: 42ch; color: #c4c4c4; font-size: 15px; line-height: 1.65; }
+.catalog-age-note, .catalog-age-denied { color: #999; font-size: 12px; line-height: 1.5; }
+.catalog-age-actions { display: grid; gap: 10px; margin-top: 26px; }
+.catalog-age-actions button { min-height: 46px; padding: 10px 14px; border: 1px solid #e50914; border-radius: 6px; cursor: pointer; font-size: 14px; }
+.catalog-age-continue { background: #e50914; color: #fff; }
+.catalog-age-continue:hover, .catalog-age-continue:focus-visible { background: #f31b27; }
+.catalog-age-decline { background: transparent; color: #f5f5f5; }
+.catalog-age-actions button:focus-visible { outline: 3px solid #ff7279; outline-offset: 3px; }
+.catalog-age-actions button:disabled { cursor: not-allowed; opacity: .55; }
+.catalog-age-denied { margin: 14px 0 0; color: #ff737b; }
+.catalog-age-denied[hidden] { display: none; }
+
 /* Filtrox wordmark proportions */
 .brand-word{font-size:21px;letter-spacing:.2px}.footer-mark{font-size:14px;letter-spacing:.8px}
 
