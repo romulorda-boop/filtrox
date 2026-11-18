@@ -8,12 +8,25 @@
     <title>FILTROX — Cinema after dark</title>
     <link rel="icon" href="/assets/filtrox-mark.svg" type="image/svg+xml" />
     <link rel="stylesheet" href="/styles.css" />
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.4.1/papaparse.min.js" defer></script>
     <script src="/data-config.js" defer></script>
     <script src="/app.js" defer></script>
   </head>
   <body>
-    <div class="app-shell">
+    <div class="catalog-age-gate" id="catalogAgeGate" role="dialog" aria-modal="true" aria-labelledby="catalogAgeTitle" aria-describedby="catalogAgeDescription">
+      <section class="catalog-age-card">
+        <div class="catalog-age-brand">FILTROX <span>18+</span></div>
+        <p class="catalog-age-kicker">ACESSO RESTRITO</p>
+        <h1 id="catalogAgeTitle">Confirmação de idade</h1>
+        <p id="catalogAgeDescription">Este catálogo apresenta referências a vídeos e assuntos destinados a adultos. Você precisa ter 18 anos ou mais para continuar.</p>
+        <p class="catalog-age-note">A confirmação é declaratória e não é armazenada.</p>
+        <div class="catalog-age-actions">
+          <button class="catalog-age-continue" id="catalogConfirmAge" type="button">Tenho 18 anos ou mais</button>
+          <button class="catalog-age-decline" id="catalogDenyAge" type="button">Tenho menos de 18 anos</button>
+        </div>
+        <p class="catalog-age-denied" id="catalogAgeDenied" role="status" hidden>O acesso está bloqueado. Feche esta página.</p>
+      </section>
+    </div>
+    <div class="app-shell" id="catalogApp" hidden>
       <aside class="sidebar" id="sidebar" aria-label="Navegação principal">
         <a class="brand" href="#inicio" aria-label="FILTROX, início" data-nav="inicio">
           <img class="brand-mark" src="/assets/filtrox-mark.svg" alt="" aria-hidden="true" />

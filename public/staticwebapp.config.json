@@ -8,5 +8,8 @@
         "Expires": "0"
       }
     }
-  ]
+  ],
+  "platform": {
+    "apiRuntime": "node:22"
+  }
 }

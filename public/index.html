@@ -3,26 +3,76 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <meta name="theme-color" content="#f5f5f0" />
-    <meta name="description" content="FILTROX — busca limpa e descoberta de vídeos." />
+    <meta name="theme-color" content="#080808" />
+    <meta name="description" content="FILTROX — busca e descoberta no catálogo oficial." />
     <link rel="icon" href="/assets/filtrox-mark.svg" type="image/svg+xml" />
     <link rel="stylesheet" href="/home.css" />
     <script src="/data-config.js" defer></script>
     <script src="/home.js" defer></script>
-    <title>FILTROX</title>
+    <title>FILTROX — Busca e descoberta</title>
   </head>
   <body>
-    <div class="home-shell">
-      <aside class="sidebar" aria-label="Filtros">
-        <nav class="filter-list" aria-label="Ordenar vídeos">
-          <button class="filter-button is-active" type="button" data-filter="recent" aria-pressed="true">Mais recente</button>
-          <button class="filter-button" type="button" data-filter="watched" aria-pressed="false">Mais assistido</button>
-          <button class="filter-button" type="button" data-filter="commented" aria-pressed="false">Mais comentado</button>
-          <button class="filter-button" type="button" data-filter="rated" aria-pressed="false">Melhor avaliado</button>
-        </nav>
-        <section class="tag-browser" aria-label="Tags oficiais do catálogo">
+    <div class="home-age-gate" id="homeAgeGate" role="dialog" aria-modal="true" aria-labelledby="homeAgeTitle" aria-describedby="homeAgeDescription">
+      <section class="home-age-card">
+        <a class="home-age-brand" href="/" aria-label="FILTROX, início">
+          <img src="/assets/filtrox-mark.svg" alt="" aria-hidden="true" />
+          <span>FILTROX</span><b>18+</b>
+        </a>
+        <p class="home-age-kicker">ACESSO RESTRITO</p>
+        <h1 id="homeAgeTitle">Confirmação de idade</h1>
+        <p id="homeAgeDescription">Este site apresenta referências a vídeos e assuntos destinados a adultos. Você precisa ter 18 anos ou mais para continuar.</p>
+        <p class="home-age-note">A confirmação é declaratória e não é armazenada.</p>
+        <div class="home-age-actions">
+          <button class="home-age-continue" id="homeConfirmAge" type="button">Tenho 18 anos ou mais</button>
+          <button class="home-age-decline" id="homeDenyAge" type="button">Tenho menos de 18 anos</button>
+        </div>
+        <p class="home-age-denied" id="homeAgeDenied" role="status" hidden>O acesso está bloqueado. Feche esta página.</p>
+      </section>
+    </div>
+
+    <div class="home-shell" id="homeApp" hidden>
+      <header class="home-topbar">
+        <span class="topbar-caption">BUSCA E DESCOBERTA</span>
+        <span class="topbar-age"><i aria-hidden="true"></i> ACESSO 18+</span>
+      </header>
+      <main class="home-main">
+        <section class="search-hero" aria-labelledby="homeBrand">
+          <a class="home-brand" href="/" id="homeBrand" aria-label="FILTROX, início">
+            <img src="/assets/filtrox-mark.svg" alt="" aria-hidden="true" />
+            <span>FILTROX</span>
+          </a>
+          <p class="brand-tagline">EXPLORE O CATÁLOGO</p>
+          <form class="search-form" id="homeSearch" role="search">
+            <label class="sr-only" for="homeSearchInput">Buscar no catálogo</label>
+            <span class="search-icon" aria-hidden="true"></span>
+            <input id="homeSearchInput" name="q" type="search" placeholder="Buscar por título, tag ou elenco…" autocomplete="off" />
+            <button class="search-submit" type="submit">Buscar</button>
+          </form>
+          <button class="random-button" id="homeRandom" type="button"><span aria-hidden="true">✳</span> Aleatório</button>
+        </section>
+
+        <section class="sort-section" aria-label="Ordenar resultados">
+          <span class="sort-label">ORDENAR</span>
+          <div class="filter-list" role="group" aria-label="Ordenar vídeos">
+            <button class="filter-button is-active" type="button" data-filter="recent" aria-pressed="true">Mais recentes</button>
+            <button class="filter-button" type="button" data-filter="watched" aria-pressed="false">Mais vistos</button>
+            <button class="filter-button" type="button" data-filter="commented" aria-pressed="false">Mais comentados</button>
+            <button class="filter-button" type="button" data-filter="rated" aria-pressed="false">Melhor avaliados</button>
+          </div>
+        </section>
+
+        <section class="tag-section" aria-labelledby="homeCategoriesTitle">
+          <div class="section-heading">
+            <div>
+              <p class="section-kicker">EXPLORE POR ASSUNTO</p>
+              <h1 id="homeCategoriesTitle">Categorias <span>populares</span></h1>
+            </div>
+            <span class="official-label"><i aria-hidden="true"></i> TAGS DO CSV OFICIAL</span>
+          </div>
+          <p class="tag-status" id="homePopularStatus" aria-live="polite">As categorias da base oficial aparecerão após a confirmação de idade.</p>
+          <div class="popular-tags" id="homePopularTags" role="list" aria-label="Categorias populares do catálogo" aria-busy="false"></div>
           <button class="tag-toggle" id="homeTagsToggle" type="button" aria-expanded="false" aria-controls="homeTagsPanel">
-            <span>Todas as tags</span><span class="tag-count" id="homeTagsCount" hidden></span><span class="tag-chevron" aria-hidden="true">⌄</span>
+            <span>Ver todas as tags</span><span class="tag-count" id="homeTagsCount" hidden></span><span class="tag-chevron" aria-hidden="true">⌄</span>
           </button>
           <div class="tag-panel" id="homeTagsPanel" hidden>
             <label class="sr-only" for="homeTagSearch">Filtrar tags oficiais</label>
@@ -32,19 +82,19 @@
             <button class="tag-load-more" id="homeTagsMore" type="button" hidden>Carregar mais tags</button>
           </div>
         </section>
-      </aside>
 
-      <main class="main-content">
-        <form class="search-form" id="homeSearch" role="search">
-          <label class="sr-only" for="homeSearchInput">Buscar</label>
-          <input id="homeSearchInput" name="q" type="search" placeholder="Buscar" autocomplete="off" />
-          <button class="search-submit" type="submit" aria-label="Buscar">↵</button>
-        </form>
         <section class="search-results" aria-label="Resultados" aria-live="polite">
+          <p class="result-summary" id="homeResultSummary" aria-live="polite"></p>
           <div class="result-grid" id="homeResultGrid"></div>
           <p class="no-results" id="homeNoResults" hidden>Nenhum resultado encontrado</p>
+          <button class="result-load-more" id="homeLoadMore" type="button" hidden>Carregar mais resultados</button>
         </section>
       </main>
+      <footer class="home-footer">
+        <a class="footer-brand" href="/" aria-label="FILTROX, início"><img src="/assets/filtrox-mark.svg" alt="" aria-hidden="true" /><span>FILTROX</span></a>
+        <span>Busca e descoberta no catálogo oficial.</span>
+        <span class="footer-right">© FILTROX · ACESSO 18+</span>
+      </footer>
     </div>
   </body>
 </html>
