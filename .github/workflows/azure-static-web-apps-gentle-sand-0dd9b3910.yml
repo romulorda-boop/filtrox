@@ -27,7 +27,11 @@ jobs:
           test -f api/host.json
           test -f api/catalog/function.json
           test -f api/catalog/index.js
+          test -f api/catalog-import-start/function.json
+          test -f api/catalog-import-start/index.js
           node -e 'const api=require("./api/catalog/function.json"); const app=require("./public/staticwebapp.config.json"); if (api.bindings[0]?.route !== "catalog" || !api.bindings[0]?.methods?.includes("post") || app.platform?.apiRuntime !== "node:22") process.exit(1)'
+          node -e 'const api=require("./api/catalog-import-start/function.json"); if (api.bindings[0]?.route !== "catalog/import/start" || !api.bindings[0]?.methods?.includes("post")) process.exit(1)'
+          npm --prefix api test
       - name: Build And Deploy
         id: builddeploy
         uses: Azure/static-web-apps-deploy@v1

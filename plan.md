@@ -18,3 +18,13 @@ Ao expandir “Todas as tags”, a homepage busca os dois CSVs configurados com 
 ## Restrições
 
 Não criar tags, categorias ou métricas; não usar elenco como fonte de tags; não salvar busca em armazenamento local; não depender do endpoint `/api/catalog` para filtrar uma tag; preservar busca e rotas existentes. A lista reflete a configuração atual dos dois CSVs e usa política de cache sem armazenamento antigo.
+
+
+## Extensão de infraestrutura — inicialização de importação SWA
+
+- Implementar a rota HTTP `POST /api/catalog/import/start` como uma Azure Function do diretório `api/` já publicado pelo workflow SWA, sem criar backend separado nem alterar Next.js/FastAPI.
+- Exigir token administrativo server-side `CATALOG_IMPORT_TOKEN`, comparado em tempo constante; nunca aceitar token, URL SAS ou credenciais no corpo do pedido, nunca logar esses valores e nunca usar `ageConfirmed` como autorização administrativa.
+- Validar uma lista fechada de fontes (`xvideos`, `pornhub`) e persistir um manifesto inicial de controle em `imports/<runId>/state.json` no container configurado por `CATALOG_CONTROL_CONTAINER_SAS_URL`.
+- Usar SAS de container HTTPS restrito a criação/escrita (`sr=c`, permissões `c` e `w`), `If-None-Match: *`, timeout de rede inferior ao teto de 45 segundos do SWA, sem devolver nem registrar o SAS.
+- O manifesto inicial registra esquema, runId, estado e contadores/cursor vazios por fonte, além do prefixo de staging versionado; não inclui URLs de origem, SAS, conteúdo dos CSVs ou dados de vídeos.
+- Se os App Settings de token ou Blob não estiverem definidos, responder de forma segura e não simular uma gravação real; validar o fluxo por testes unitários com fetch Azure mockado. Não publicar, fazer merge ou gravar no Blob real nesta etapa.

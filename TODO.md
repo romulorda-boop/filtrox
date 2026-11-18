@@ -133,3 +133,13 @@ node --check public/rota-search/filters.js
 node --check server.js
 git diff --check
 ```
+
+
+## Inicialização de importação do catálogo — API Azure Static Web Apps
+- [x] Implementado e testado `POST /api/catalog/import/start` dentro do diretório `api/` já publicado pelo workflow do SWA, sem criar backend paralelo nem migrar para Next.js/FastAPI.
+  - Exigir `Authorization: Bearer ...` comparado em tempo constante com o App Setting server-side `CATALOG_IMPORT_TOKEN`; não tratar `ageConfirmed` como autorização de importação e não expor/logar o token.
+  - Aceitar apenas fontes identificadas de uma lista fechada (`xvideos`, `pornhub`); não aceitar URLs SAS pelo request.
+  - Criar em Blob `imports/<runId>/state.json` com versão do esquema, ID aleatório, status inicial, timestamps, fontes, progresso/cursor inicial e prefixo de staging versionado; não gravar URLs SAS, dados de vídeos nem credenciais.
+  - Usar o App Setting server-side `CATALOG_CONTROL_CONTAINER_SAS_URL`, validar HTTPS, host Azure Blob, container SAS `sr=c`, assinatura e permissões `c`/`w`; criar somente com `If-None-Match: *` e timeout limitado; responder sem SAS.
+  - Tratar método, autorização, corpo, configurações ausentes, conflito e falha Blob com códigos HTTP seguros; incluir o novo route e método POST na validação do workflow.
+  - Adicionar testes Node sem tráfego real ao Azure para validação do request, autenticação, escopo do SAS e corpo gravado. A gravação em produção permanece pendente até configurar App Settings no Azure.
