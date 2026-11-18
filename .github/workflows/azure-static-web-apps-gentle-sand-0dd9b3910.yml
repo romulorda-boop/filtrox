@@ -20,13 +20,14 @@ jobs:
         with:
           submodules: true
           lfs: false
-      - name: Prepare catalog data for API
+      - name: Validate API deployment configuration
         shell: bash
         run: |
-          if [ -f data/xvideos_up.csv ]; then
-            mkdir -p api/data
-            cp data/xvideos_up.csv api/data/xvideos_up.csv
-          fi
+          set -eu
+          test -f api/host.json
+          test -f api/catalog/function.json
+          test -f api/catalog/index.js
+          node -e 'const api=require("./api/catalog/function.json"); const app=require("./public/staticwebapp.config.json"); if (api.bindings[0]?.route !== "catalog" || !api.bindings[0]?.methods?.includes("post") || app.platform?.apiRuntime !== "node:22") process.exit(1)'
       - name: Build And Deploy
         id: builddeploy
         uses: Azure/static-web-apps-deploy@v1
@@ -36,8 +37,8 @@ jobs:
           action: "upload"
           ###### Repository/Build Configurations - These values can be configured to match your app requirements. ######
           # For more information regarding Static Web App workflow configurations, please visit: https://aka.ms/swaworkflowconfig
-          app_location: "./public" # App source code path
-          api_location: "./api" # Api source code path
+          app_location: "public" # App source code path
+          api_location: "api" # Api source code path
           output_location: "." # Built app content directory - optional
           ###### End of Repository/Build Configurations ######
 
