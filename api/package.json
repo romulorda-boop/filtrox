@@ -3,5 +3,8 @@
   "private": true,
   "engines": {
     "node": ">=18"
+  },
+  "scripts": {
+    "test": "node --test ../tests/api/catalog-import-start.test.js"
   }
 }
