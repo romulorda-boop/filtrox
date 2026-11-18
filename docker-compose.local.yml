@@ -26,6 +26,16 @@ services:
       interval: 5s
       timeout: 3s
       retries: 10
+  meilisearch:
+    image: getmeili/meilisearch:v1.12
+    environment:
+      MEILI_ENV: development
+      MEILI_MASTER_KEY: ${MEILI_API_KEY:?Defina MEILI_API_KEY apenas no ambiente local}
+    ports:
+      - "127.0.0.1:7700:7700"
+    volumes:
+      - filtrox_meili_data:/meili_data
 volumes:
   filtrox_pgdata:
   filtrox_redisdata:
+  filtrox_meili_data:

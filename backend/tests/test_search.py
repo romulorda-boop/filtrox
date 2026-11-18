@@ -47,6 +47,30 @@ class SearchTests(unittest.TestCase):
         self.assertEqual(set(self.ids({"include_tags": ["basic", "country:BR"]})), {"a"})
         self.assertEqual(self.ids({"include_tags": ["basic"], "exclude_tags": ["basic"]}), [])
 
+    def test_included_tags_support_or_and_exclusions_always_block_any_match(self):
+        items = [
+            {"id": "both", "title": "Synthetic", "tags": ["red", "blue"]},
+            {"id": "red", "title": "Synthetic", "tags": ["red"]},
+            {"id": "blue", "title": "Synthetic", "tags": ["blue"]},
+            {"id": "blocked", "title": "Synthetic", "tags": ["red", "blue", "blocked"]},
+        ]
+        self.assertEqual(set(self.ids({"include_tags": ["red", "blue"], "include_tags_mode": "and"}, items)), {"both", "blocked"})
+        self.assertEqual(set(self.ids({"include_tags": ["red", "blue"], "include_tags_mode": "or"}, items)), {"both", "red", "blue", "blocked"})
+        self.assertEqual(set(self.ids({"include_tags": ["red", "blue"], "include_tags_mode": "or", "exclude_tags": ["blocked"]}, items)), {"both", "red", "blue"})
+
+    def test_tag_facets_group_only_exact_text_across_sources_and_count_videos(self):
+        items = [
+            {"id": "a", "title": "Synthetic", "tags": ["Exact", "Exact"], "source": "xvideos", "language": "pt"},
+            {"id": "b", "title": "Synthetic", "tags": ["Exact"], "source": "pornhub", "language": "en"},
+            {"id": "c", "title": "Synthetic", "tags": ["exact"], "source": "xvideos", "language": "es"},
+        ]
+        result = search_catalog(items, {"page": 2, "page_size": 1})
+        facets = {facet["tag"]: facet for facet in result["filters"]["tags"]}
+        self.assertEqual(facets["Exact"]["video_count"], 2)
+        self.assertEqual(facets["Exact"]["sources"], ["pornhub", "xvideos"])
+        self.assertEqual(facets["exact"]["video_count"], 1)
+        self.assertEqual(result["filters"]["languages"], ["en", "es", "pt"])
+
     def test_explicit_country_and_language_only(self):
         self.assertEqual(set(self.ids({"country": "BR"})), {"a", "d"})
         self.assertEqual(self.ids({"country": "US"}), [])
@@ -78,6 +102,8 @@ class SearchTests(unittest.TestCase):
         self.assertEqual(result["page_size"], 30)
         self.assertEqual(len(result["items"]), 30)
         self.assertTrue(result["filters"]["tags"])
+        basic = next(facet for facet in result["filters"]["tags"] if facet["tag"] == "basic")
+        self.assertEqual(basic["video_count"], 32)
 
 
 if __name__ == "__main__":

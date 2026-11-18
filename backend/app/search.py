@@ -76,7 +76,8 @@ def _contains_any(sequences: Sequence[Sequence[str]], terms: Sequence[str]) -> b
 
 
 def _normalized_tag_set(item: Mapping[str, Any]) -> set[str]:
-    return {str(tag).strip().casefold() for tag in (item.get("tags") or []) if str(tag).strip()}
+    # Tag identity is its exact source text; do not case-fold or translate it.
+    return {str(tag) for tag in (item.get("tags") or []) if str(tag).strip()}
 
 
 def _matches(item: Mapping[str, Any], criteria: Mapping[str, Any], watched_ids: set[str]) -> bool:
@@ -100,10 +101,13 @@ def _matches(item: Mapping[str, Any], criteria: Mapping[str, Any], watched_ids: 
     if any(not any(_sequence_in(sequence, _tokens(phrase)) for sequence in sequences) for phrase in criteria["required_phrases"]):
         return False
 
-    include_tags = {str(value).strip().casefold() for value in criteria["include_tags"] if str(value).strip()}
-    exclude_tags = {str(value).strip().casefold() for value in criteria["exclude_tags"] if str(value).strip()}
-    if include_tags and not include_tags.issubset(tags):
-        return False
+    include_tags = {str(value) for value in criteria["include_tags"] if str(value).strip()}
+    exclude_tags = {str(value) for value in criteria["exclude_tags"] if str(value).strip()}
+    if include_tags:
+        if criteria["include_tags_mode"] == "or" and not include_tags.intersection(tags):
+            return False
+        if criteria["include_tags_mode"] == "and" and not include_tags.issubset(tags):
+            return False
     if exclude_tags.intersection(tags):
         return False
 
@@ -186,6 +190,7 @@ def _build_criteria(payload: Mapping[str, Any]) -> dict[str, Any]:
         "excluded_equivalents": _distinct(payload.get("excluded_equivalents") or []),
         "include_tags": tuple(str(value) for value in (payload.get("include_tags") or [])),
         "exclude_tags": tuple(str(value) for value in (payload.get("exclude_tags") or [])),
+        "include_tags_mode": "or" if str(payload.get("include_tags_mode", "and")).casefold() == "or" else "and",
         "language": str(payload.get("language") or "").strip(),
         "country": str(payload.get("country") or "").strip(),
         "hide_watched": bool(payload.get("hide_watched", False)),
@@ -245,7 +250,7 @@ def search_catalog(
         "page": page,
         "page_size": page_size,
         "filters": {
-            "tags": [{"tag": tag, "video_count": count, "sources": sorted(tag_sources.get(tag, set()))} for tag, count in sorted(tag_counts.items(), key=lambda pair: (-pair[1], pair[0].casefold()))],
+            "tags": [{"tag": tag, "video_count": count, "sources": sorted(tag_sources.get(tag, set()))} for tag, count in sorted(tag_counts.items(), key=lambda pair: (-pair[1], pair[0].casefold(), pair[0]))],
             "languages": sorted(language_values),
             "countries": sorted(country_values),
         },

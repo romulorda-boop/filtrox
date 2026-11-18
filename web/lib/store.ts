@@ -1,8 +1,10 @@
 'use client';
 
 import { create } from 'zustand';
+import { saveSearchState } from './search-state.mjs';
 
 export type SortOrder = 'recent' | 'most_viewed';
+export type TagMatchMode = 'and' | 'or';
 export type TabKey = 'search' | 'history' | 'favorites';
 
 export interface CatalogItem {
@@ -13,12 +15,16 @@ export interface CatalogItem {
   official_url?: string;
   source_url?: string;
   url?: string;
+  preview_url?: string;
   thumbnail_url?: string;
   image_url?: string;
   duration?: string | number;
   duration_seconds?: number;
   views?: number;
   view_count?: number;
+  date?: string;
+  language?: string | null;
+  country?: string | null;
   watched?: boolean;
   is_favorite?: boolean;
   tags?: Array<string | { name?: string; tag?: string }>;
@@ -34,6 +40,7 @@ export interface Criteria {
   includedEquivalentsText: string;
   excludedEquivalentsText: string;
   includeTags: string[];
+  includeTagsMode: TagMatchMode;
   excludeTags: string[];
   language: string;
   country: string;
@@ -43,7 +50,7 @@ export interface Criteria {
 }
 
 interface Filters {
-  tags: Array<string | { name?: string; tag?: string; count?: number; sources?: string[] }>;
+  tags: Array<string | { name?: string; tag?: string; count?: number; video_count?: number; sources?: string[] }>;
   languages: Array<string | { code?: string; name?: string; label?: string }>;
   countries: Array<string | { code?: string; name?: string; label?: string }>;
 }
@@ -77,7 +84,7 @@ interface Store {
 const initialCriteria: Criteria = {
   query: '', requiredText: '', optionalText: '', excludedText: '', exactText: '',
   includedEquivalentsText: '', excludedEquivalentsText: '',
-  includeTags: [], excludeTags: [], language: '', country: '', hideWatched: false, sort: 'recent', sortSecondary: '',
+  includeTags: [], includeTagsMode: 'and', excludeTags: [], language: '', country: '', hideWatched: false, sort: 'recent', sortSecondary: '',
 };
 
 // This flag only controls UI behavior; the Next.js proxy and FastAPI validate the
@@ -172,7 +179,11 @@ export const useFILTROXStore = create<Store>((set, get) => ({
   error: '',
   notice: '',
 
-  setCriteria: (patch) => set((state) => ({ criteria: { ...state.criteria, ...patch } })),
+  setCriteria: (patch) => set((state) => {
+    const criteria = { ...state.criteria, ...patch };
+    saveSearchState(criteria, state.page);
+    return { criteria };
+  }),
   setNotice: (notice) => set({ notice }),
   setTab: (activeTab) => {
     set({ activeTab, error: '', notice: '' });
@@ -183,6 +194,7 @@ export const useFILTROXStore = create<Store>((set, get) => ({
     if (!ready) return;
     set({ loading: true, error: '', notice: '', page: requestedPage });
     const criteria = get().criteria;
+    saveSearchState(criteria, requestedPage);
     const body = {
       query: criteria.query.trim(),
       required_terms: splitTerms(criteria.requiredText),
@@ -192,6 +204,7 @@ export const useFILTROXStore = create<Store>((set, get) => ({
       included_equivalents: splitTerms(criteria.includedEquivalentsText),
       excluded_equivalents: splitTerms(criteria.excludedEquivalentsText),
       include_tags: criteria.includeTags,
+      include_tags_mode: criteria.includeTagsMode,
       exclude_tags: criteria.excludeTags,
       language: criteria.language,
       country: criteria.country,
@@ -207,10 +220,12 @@ export const useFILTROXStore = create<Store>((set, get) => ({
         items?: CatalogItem[]; total?: number; page?: number; page_size?: number; filters?: unknown;
       } | null;
       const items = Array.isArray(data?.items) ? data.items : [];
+      const resultPage = Number(data?.page) || requestedPage;
+      saveSearchState(criteria, resultPage);
       set((state) => ({
         catalogItems: items,
         total: Number(data?.total) || 0,
-        page: Number(data?.page) || requestedPage,
+        page: resultPage,
         pageSize: Number(data?.page_size) || 30,
         filters: normalizeFilters(data?.filters),
         favoriteIds: Array.from(new Set([...state.favoriteIds, ...items.filter((item) => item.is_favorite).map(toId)])),

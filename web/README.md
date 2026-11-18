@@ -39,4 +39,6 @@ cd web && npm run lint && npm run build && npm audit --audit-level=high
 
 `GET /v1/me/history` e `GET /v1/me/favorites` retornam registros associados à identidade do proprietário determinada no servidor. `POST /v1/me/history` registra reprodução e `POST /v1/me/favorites` atualiza favoritos; `DELETE /v1/me/history` apaga o histórico.
 
-O cliente não usa `localStorage`, token em JavaScript, catálogo de demonstração ou cadastro público. Nenhum conteúdo externo é carregado antes da ação explícita do usuário.
+Em `/settings`, o administrador pode iniciar manualmente um backup PostgreSQL criptografado por `age`; o navegador baixa o arquivo `.dump.age` no dispositivo. O servidor transmite `pg_dump` pelo pipe, não grava nem retém cópias de backup, e não há agendamento. A identidade privada `age` permanece com o proprietário; apenas a chave pública vai para o backend aprovado. A restauração segue bloqueada enquanto não existir um fluxo compatível com arquivo local e cópia pré-restauração também salva localmente.
+
+O cliente não usa `localStorage`, token em JavaScript, catálogo de demonstração ou cadastro público. Para permitir voltar à busca na mesma aba, apenas os critérios e o número da página ficam em `sessionStorage` durante a sessão da aba; resultados, histórico e favoritos não são gravados ali, e o snapshot é apagado ao sair da conta. Nenhum conteúdo externo é carregado antes da ação explícita do usuário.

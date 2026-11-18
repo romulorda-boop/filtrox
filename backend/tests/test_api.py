@@ -1,7 +1,7 @@
 import os
 import time
 import unittest
-from unittest.mock import patch
+from unittest.mock import AsyncMock, patch
 
 from fastapi import HTTPException
 from fastapi.testclient import TestClient
@@ -9,6 +9,7 @@ from pydantic import ValidationError
 
 from app.auth import SESSION_IDLE_TTL_SECONDS, hash_password
 from app.main import SearchRequest, _safe_video_url, app
+from app.search_index import SearchEngineUnavailable
 from app.storage import _ssl_setting
 
 
@@ -16,6 +17,7 @@ TEST_EMAIL = "owner@example.test"
 TEST_PASSWORD = "synthetic-test-password"
 TEST_CONFIG = {
     "FILTROX_ENVIRONMENT": "development",
+    "DATABASE_URL": "",
     "FILTROX_LOGIN_EMAIL": TEST_EMAIL,
     "FILTROX_LOGIN_PASSWORD_HASH": hash_password(
         TEST_PASSWORD, iterations=100_000, salt=b"synthetic-salt-123"
@@ -43,8 +45,17 @@ class ApiTests(unittest.TestCase):
             ("GET", "/healthz", None),
             ("POST", "/v1/catalog/search", {"query": "synthetic"}),
             ("GET", "/v1/me/history", None),
+            ("GET", "/v1/me/history/export?format=csv", None),
             ("DELETE", "/v1/me/history", None),
             ("GET", "/v1/me/favorites", None),
+            ("GET", "/v1/me/favorites/export?format=json", None),
+            ("GET", "/v1/admin/backups", None),
+            ("GET", "/v1/admin/backups/download", None),
+            ("POST", "/v1/admin/backups/restore", {
+                "filename": "filtrox-postgres-20260101T000000Z-000000000001.dump.age",
+                "confirmation": "RESTAURAR FILTROX: filtrox-postgres-20260101T000000Z-000000000001.dump.age",
+            }),
+            ("POST", "/v1/me/password", {"current_password": TEST_PASSWORD, "new_password": "synthetic-new-password"}),
             ("POST", "/v1/me/favorites", {"source": "xvideos", "video_id": "synthetic", "url": "https://www.xvideos.com/video.synthetic", "enabled": True}),
         ]
         for method, path, body in requests:
@@ -75,6 +86,77 @@ class ApiTests(unittest.TestCase):
         self.assertEqual(response.status_code, 200)
         self.assertIn(f"Max-Age={SESSION_IDLE_TTL_SECONDS}", response.headers["set-cookie"])
         self.assertNotEqual(self.client.cookies.get("filtrox_session"), original_cookie)
+
+    def test_backup_status_is_unavailable_without_key_and_does_not_leak_database_values(self):
+        self.assertEqual(self.login().status_code, 200)
+        with patch.dict(os.environ, {
+            "FILTROX_BACKUP_AGE_RECIPIENT": "",
+            "DATABASE_URL": "synthetic malformed value; must not be inspected by listing",
+        }):
+            response = self.client.get("/v1/admin/backups")
+
+        self.assertEqual(response.status_code, 200)
+        self.assertFalse(response.json()["download_available"])
+        self.assertFalse(response.json()["restore_available"])
+        self.assertIn("age", response.json()["message"])
+        self.assertNotIn("synthetic malformed", response.text)
+
+    def test_backup_status_needs_no_server_directory_when_configuration_is_ready(self):
+        self.assertEqual(self.login().status_code, 200)
+        config = object()
+        with patch("app.main.load_configuration", return_value=config), patch(
+            "app.main._close_configuration"
+        ) as close_config:
+            response = self.client.get("/v1/admin/backups")
+
+        self.assertEqual(response.status_code, 200)
+        self.assertTrue(response.json()["download_available"])
+        self.assertFalse(response.json()["restore_available"])
+        self.assertIn("baixado pelo navegador", response.json()["message"])
+        self.assertIn("não cria", response.json()["message"])
+        close_config.assert_called_once_with(config)
+
+    def test_download_returns_encrypted_attachment_without_a_server_archive_path(self):
+        self.assertEqual(self.login().status_code, 200)
+
+        class SyntheticStream:
+            def __iter__(self):
+                yield b"synthetic age ciphertext only"
+
+            def close(self):
+                self.closed = True
+
+        config = object()
+        stream = SyntheticStream()
+        stream.closed = False
+        with patch("app.main.load_configuration", return_value=config), patch(
+            "app.main.EncryptedBackupStream", return_value=stream
+        ) as stream_factory:
+            response = self.client.get("/v1/admin/backups/download")
+
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.content, b"synthetic age ciphertext only")
+        self.assertEqual(response.headers["content-type"], "application/octet-stream")
+        self.assertIn("attachment; filename=\"filtrox-postgres-", response.headers["content-disposition"])
+        self.assertEqual(response.headers["cache-control"], "no-store, private, max-age=0")
+        self.assertEqual(response.headers["x-content-type-options"], "nosniff")
+        self.assertTrue(stream.closed)
+        stream_factory.assert_called_once_with(config)
+
+    def test_restore_stays_blocked_even_if_legacy_flag_is_set(self):
+        self.assertEqual(self.login().status_code, 200)
+        filename = "filtrox-postgres-20260101T000000Z-000000000001.dump.age"
+        with patch.dict(os.environ, {
+            "FILTROX_WEB_RESTORE_ENABLED": "true",
+        }), patch("app.main.EncryptedBackupStream") as export:
+            response = self.client.post("/v1/admin/backups/restore", json={
+                "filename": filename,
+                "confirmation": f"RESTAURAR FILTROX: {filename}",
+            })
+
+        self.assertEqual(response.status_code, 503)
+        self.assertIn("arquivo local", response.json()["detail"])
+        export.assert_not_called()
 
     def test_wrong_password_is_rejected_without_creating_a_session(self):
         response = self.client.post("/auth/login", json={"email": TEST_EMAIL, "password": "wrong synthetic password"})
@@ -125,6 +207,17 @@ class ApiTests(unittest.TestCase):
             response = self.client.post("/v1/catalog/search", json={"query": "synthetic"})
         self.assertEqual(response.status_code, 503)
 
+    def test_search_engine_failure_returns_generic_503_without_internal_details(self):
+        self.assertEqual(self.login().status_code, 200)
+        with patch("app.main.load_catalog", new=AsyncMock(return_value=[{"id": "synthetic", "title": "synthetic title", "tags": []}])), patch(
+            "app.main.search_catalog_indexed",
+            new=AsyncMock(side_effect=SearchEngineUnavailable("synthetic secret diagnostic")),
+        ):
+            response = self.client.post("/v1/catalog/search", json={"query": "synthetic"})
+        self.assertEqual(response.status_code, 503)
+        self.assertEqual(response.json(), {"error": "Serviço de busca indisponível."})
+        self.assertNotIn("synthetic secret diagnostic", response.text)
+
     def test_catalog_search_is_post_only_after_login(self):
         self.assertEqual(self.login().status_code, 200)
         response = self.client.get("/v1/catalog/search")
@@ -141,6 +234,12 @@ class ApiTests(unittest.TestCase):
         ])
         with self.assertRaises(ValidationError):
             SearchRequest(sort=[{"field": "recent", "direction": "sideways"}])
+
+    def test_tag_match_mode_defaults_to_and_and_rejects_unknown_values(self):
+        self.assertEqual(SearchRequest().include_tags_mode, "and")
+        self.assertEqual(SearchRequest(include_tags_mode="or").include_tags_mode, "or")
+        with self.assertRaises(ValidationError):
+            SearchRequest(include_tags_mode="xor")
 
     def test_mutation_url_must_match_declared_source(self):
         with self.assertRaises(HTTPException):

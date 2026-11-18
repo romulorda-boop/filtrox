@@ -50,6 +50,23 @@ class CatalogTests(unittest.TestCase):
         removals = csv_text([["", "https://xvideos.com/video.sample-z"]], "|")
         self.assertIsNone(build_catalog(base, removals)[0]["country"])
 
+    def test_catalog_keeps_case_distinct_tags_as_distinct_values(self):
+        base = csv_text([make_row("https://xvideos.com/video.sample-a", "Synthetic room", "Tag-One|tag-one|Tag-One")], ";")
+        removals = csv_text([["", "https://xvideos.com/video.sample-z"]], "|")
+        self.assertEqual(build_catalog(base, removals)[0]["tags"], ["Tag-One", "tag-one"])
+
+    def test_catalog_details_use_only_existing_fields_and_do_not_invent_preview_urls(self):
+        base = csv_text([make_row("https://xvideos.com/video.sample-a", "Synthetic room", "tag-one|lang:pt|country:BR", "95", "1234", "2026-04-05")], ";")
+        removals = csv_text([["", "https://xvideos.com/video.sample-z"]], "|")
+        item = build_catalog(base, removals)[0]
+        self.assertEqual(item["duration_seconds"], 95)
+        self.assertEqual(item["views"], 1234)
+        self.assertEqual(item["date"], "2026-04-05")
+        self.assertEqual(item["language"], "pt")
+        self.assertEqual(item["country"], "BR")
+        self.assertNotIn("preview_url", item)
+        self.assertNotIn("thumbnail_url", item)
+
     def test_non_xvideos_removals_do_not_match(self):
         base = csv_text([make_row("https://xvideos.com/video.sample-a", "Synthetic room")], ";")
         removals = csv_text([["", "https://not-xvideos.com/video.sample-a"]], "|")

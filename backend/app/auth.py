@@ -87,6 +87,11 @@ def _parse_password_hash(encoded: str) -> tuple[int, bytes, bytes]:
         raise AuthFailure(503, "O hash de senha configurado no servidor é inválido.") from None
 
 
+def configured_password_hash() -> str:
+    """Return the configured bootstrap hash after validating required server settings."""
+    return _required_config()["password_hash"]
+
+
 def hash_password(password: str, *, iterations: int = DEFAULT_PBKDF2_ITERATIONS, salt: bytes | None = None) -> str:
     """Create a PBKDF2 hash for server configuration; never store the raw password."""
     if not isinstance(password, str) or len(password) < 12 or len(password) > 1024:
@@ -98,13 +103,18 @@ def hash_password(password: str, *, iterations: int = DEFAULT_PBKDF2_ITERATIONS,
     return f"pbkdf2_sha256${iterations}${_b64url_encode(salt)}${_b64url_encode(digest)}"
 
 
-def verify_credentials(email: str, password: str) -> Principal:
-    """Authenticate the one configured account; there is no signup or account creation path."""
-    config = _required_config()
-    iterations, salt, expected = _parse_password_hash(config["password_hash"])
+def verify_password_hash(password: str, encoded_hash: str) -> bool:
+    """Verify one password against a stored PBKDF2 hash using constant-time comparison."""
+    iterations, salt, expected = _parse_password_hash(encoded_hash)
     candidate = password if isinstance(password, str) and len(password) <= 1024 else "\0"
     actual = hashlib.pbkdf2_hmac("sha256", candidate.encode("utf-8"), salt, iterations)
-    password_ok = hmac.compare_digest(actual, expected)
+    return hmac.compare_digest(actual, expected)
+
+
+def verify_credentials(email: str, password: str, *, password_hash: str | None = None) -> Principal:
+    """Authenticate the one configured account; there is no signup or account creation path."""
+    config = _required_config()
+    password_ok = verify_password_hash(password, password_hash if password_hash is not None else config["password_hash"])
     normalized_email = _normalize_email(email)
     email_ok = bool(normalized_email) and hmac.compare_digest(
         normalized_email.encode("utf-8"), config["email"].encode("utf-8")

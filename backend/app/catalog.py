@@ -121,7 +121,7 @@ def _split_tags(raw: str) -> list[str]:
     result: list[str] = []
     for value in re.split(r"[|,]", raw):
         tag = value.strip()
-        key = tag.casefold()
+        key = tag
         if tag and key not in seen:
             seen.add(key)
             result.append(tag)

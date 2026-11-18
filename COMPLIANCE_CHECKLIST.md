@@ -15,15 +15,20 @@ A documentação oficial do [Pornhub Webmasters](https://www.pornhub.com/webmast
 ## Implementado e testado localmente
 
 - [x] Busca estrita, filtros dinâmicos, equivalências manuais, ordenação dupla e paginação limitada a 30 itens.
+- [x] Inclusão de múltiplas tags com AND/OR, exclusão de qualquer tag selecionada, facetas com contagem de vídeos distintos e agrupamento somente por texto idêntico; idiomas permanecem separados e traduções não são aplicadas automaticamente.
 - [x] Login por uma única conta individual, com e-mail e hash PBKDF2 definidos apenas no servidor; não existe signup/cadastro público.
 - [x] Cookie de sessão assinado, `HttpOnly`, `SameSite=Strict`, renovado em páginas e APIs autenticadas e expirado após 30 dias sem atividade; `Secure` obrigatório em produção.
 - [x] Proxy server-side do Next.js exige sessão válida antes de entregar páginas privadas; o FastAPI exige a mesma sessão em todas as APIs, incluindo `/healthz`, busca, histórico e favoritos.
 - [x] Credenciais/segredo ausentes ou inválidos causam falha fechada. O hash pode ser gerado localmente por `python backend/scripts/hash_password.py`; senha em texto puro não é armazenada pelo código.
 - [x] Declaração 18+ aparece depois do login, como camada declaratória independente. Não verifica nem comprova idade, não compõe a autenticação e não é prova de conformidade legal.
 - [x] Carregador Xvideos com limites, streaming, deduplicação e remoções antes das facetas; testes somente com dados sintéticos.
+- [x] Integração de código Meilisearch: o índice privado guarda apenas IDs e fingerprints HMAC de tokens derivados com chave server-side, recebe somente o catálogo após remoções e é consultado pelo backend autenticado; regras exatas continuam no backend. Testes usam transporte HTTP simulado, sem conexão a servidor real.
+- [ ] Validar Meilisearch com fixture sintética em instância local e definir coordenação distribuída ou troca atômica de índice antes de usar múltiplos workers; o lock atual é apenas por processo.
 - [x] Smoke test integrado local com credenciais sintéticas confirmou redirect para login, acesso após autenticação, APIs sem cookie bloqueadas, cookie protegido, logout e falha fechada sem catálogo configurado.
-- [x] 43 testes unitários sintéticos, compilação Python, lint e build Next.js passaram; os testes usam somente dados sintéticos.
+- [x] 93 testes Python sintéticos passaram; compilação Python, 7 testes do frontend, `npm run lint` (TypeScript) e `git diff --check` também passaram. Nenhum build Next.js foi executado nesta etapa.
 - [x] Nenhum login real, Blob, feed, banco ou serviço externo foi chamado nesta validação; nenhum CSV real foi lido.
+- [x] Exportação manual local preparada: clique autenticado inicia `pg_dump`→`age` por pipes e o navegador baixa somente o arquivo cifrado. Não há arquivo de backup, staging em claro, retenção, cópia automática ou scheduler no backend. Apenas a chave pública `age` pode ser configurada no backend aprovado; a identidade privada fica sob controle local do proprietário.
+- [x] Restauração bloqueada sem caminho seguro de arquivo local: não existe ainda upload/descriptografia com chave local nem entrega/guarda local do backup pré-restauração. A flag legada não pode habilitar restauração.
 
 ## Configuração necessária antes de qualquer teste privado ou publicação
 
@@ -38,7 +43,8 @@ A documentação oficial do [Pornhub Webmasters](https://www.pornhub.com/webmast
 
 - [ ] Configurar e testar as credenciais reais somente no servidor privado autorizado; verificar login, senha incorreta, logout, expiração, rotação/revogação e ausência de signup público.
 - [ ] Revisar rate limiting, CSRF/origem, CSP, CORS, TLS, armazenamento de segredos e proteção contra tentativas automatizadas.
-- [ ] Configurar PostgreSQL/Redis, TLS com validação de CA/host, migrações, isolamento, backups diários com sete cópias e restauração testada. Nenhum banco foi criado.
+- [ ] Nenhuma hospedagem foi escolhida. Antes de usar backups reais, aprovar uma hospedagem privada; configurar PostgreSQL com TLS `verify-full`, aplicar migrações revisadas, instalar `age` e `pg_dump` confiáveis e configurar somente o destinatário público `age` no backend. O admin iniciará cada backup e salvará manualmente o download local; não configurar diretório de backup, retenção ou agendamento no servidor.
+- [ ] Antes de habilitar restauração, desenvolver um fluxo validado que receba o arquivo local, descriptografe com identidade privada sob controle local e baixe/guarde localmente o backup criptografado pré-restauração antes de modificar qualquer dado. Até lá, manter restauração bloqueada.
 - [ ] Após autorização separada, homologar os dois CSVs Xvideos no ambiente privado para esquema, encoding, remoções, volume e atualização; isso não foi feito nesta etapa.
 - [ ] Aprovar separadamente qualquer leitura/homologação do CSV Pornhub; validar remoções, formato e privacidade antes de alterar a flag.
 - [ ] Testar Android, acessibilidade, concorrência, resiliência e carga com ambiente e dados autorizados.
