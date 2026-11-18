@@ -1,25 +1,20 @@
-# Plano — Homepage FILTROX por tags oficiais
+# Plano — tags oficiais no menu lateral da homepage FiltroX
 
-## Escopo e comportamento
+## Escopo
 
-Redesenhar apenas a rota `/` usando a imagem móvel enviada como referência de composição. Preservar `/catalog/`, `/rota-search/`, o endpoint `/api/catalog` e os contratos existentes de busca e ordenação. O formulário da homepage envia a consulta à API apenas após submissão; a homepage não deve renderizar uma lista inteira de vídeos antes da busca.
+Integrar na homepage `/` a lista oficial de tags, calculada em tempo de execução exclusivamente da coluna `tags` do CSV oficial de vídeos e após aplicar a lista oficial de remoções. Não publicar o arquivo de exportação gerado anteriormente como recurso estático.
 
-As categorias populares são derivadas exclusivamente da coluna `tags` da base oficial CSV. O carregador busca base e remoções com `cache: 'no-store'`, normaliza as URLs, exclui registros removidos e deduplica tags por vídeo. Exibir até 18 tags ordenadas pela frequência calculada; seus chips e itens da lista completa abrem `/catalog/?tag=...`. A lista completa permanece pesquisável e carregada em lotes, sem valores inventados.
-
-## Direção visual
-
-Usar uma estética editorial cinematográfica inspirada na composição da referência: cabeçalho enxuto, hero central com marca FILTROX e busca proeminente, seção de categorias com chips, resultados sob demanda e margens generosas. O fundo é preto/carvão; vermelho FILTROX identifica ações, foco e estados ativos, com cinzas neutros para texto secundário. Reutilizar o símbolo oficial e o wordmark textual, sem criar marca alternativa. A tipografia sans-serif deve ser legível em celular; metadados podem usar monoespaçada. Transições são discretas e respeitam `prefers-reduced-motion`.
+Ao expandir “Todas as tags”, a homepage busca os dois CSVs configurados com `cache: no-store`, deduplica vídeos e tags, calcula o número real de vídeos por tag, oferece um campo de filtro e renderiza os resultados em lotes para reduzir trabalho no DOM. Selecionar uma tag abre `/catalog/?tag=...`; o catálogo já lê os CSVs oficiais e filtra por correspondência exata. O endpoint atual `/api/catalog` não encontra o CSV-base no checkout local; por isso, a navegação da tag não dependerá dele.
 
 ## Arquivos e responsabilidades
 
-- `public/index.html`: hierarquia semântica do cabeçalho, hero, busca, categorias populares, lista expansível, resultados e rodapé.
-- `public/home.css`: paleta preta/vermelha, tipografia, margens, estados e breakpoints responsivos.
-- `public/home.js`: carga e cruzamento das tags/remoções, chips populares, pesquisa incremental de tags e chamada existente a `/api/catalog`.
-- `public/data-config.js`: manter URLs, delimitadores e índices atuais; não replicar tokens SAS em arquivos ou logs.
-- `public/assets/filtrox-mark.svg`: aplicar o vermelho à marca oficial reutilizada como ícone e logo.
-- `README.md` e `TODO.md`: documentar a apresentação, validação e as limitações operacionais atuais.
-- `/catalog/`, `/rota-search/`, `api/catalog/`, `public/manus-routes.json` e o workflow Azure permanecem com seus contratos e rotas.
+- `public/index.html`: incluir configuração dos CSVs e controles acessíveis da lista expansível na sidebar.
+- `public/home.js`: ler/parsing dos CSVs atuais, excluir remoções, deduplicar e contar tags, filtrar a lista localmente em lotes e navegar ao catálogo com a tag selecionada.
+- `public/home.css`: estilos da lista, estados interativos e layout desktop/mobile sem overflow horizontal.
+- `public/app.js`: inicializar a rota do catálogo com busca e filtro exato recebidos em `?tag=...`.
+- `public/data-config.js`: reutilizar a configuração existente das URLs/índices oficiais; não copiar ou exibir valores SAS em novos arquivos ou logs.
+- `TODO.md`: registrar implementação e evidências após validar.
 
-## Limite operacional conhecido
+## Restrições
 
-O navegador precisa de CORS para a origem publicada e de URLs Blob com SAS de leitura válido; essas URLs ficam públicas quando usadas no frontend. Os SAS atualmente configurados já expiraram, então validar com CSVs locais não confirma o funcionamento da produção. Não promover para `main` até receber novos SAS de leitura e confirmar o acesso de produção.
+Não criar tags, categorias ou métricas; não usar elenco como fonte de tags; não salvar busca em armazenamento local; não depender do endpoint `/api/catalog` para filtrar uma tag; preservar busca e rotas existentes. A lista reflete a configuração atual dos dois CSVs e usa política de cache sem armazenamento antigo.

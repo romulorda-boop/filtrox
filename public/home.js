@@ -1,10 +1,8 @@
 const filterButtons = [...document.querySelectorAll('[data-filter]')];
 const searchForm = document.querySelector('#homeSearch');
 const searchInput = document.querySelector('#homeSearchInput');
-const searchStatus = document.querySelector('#homeSearchStatus');
 const resultGrid = document.querySelector('#homeResultGrid');
 const noResults = document.querySelector('#homeNoResults');
-const popularTags = document.querySelector('#homePopularTags');
 const tagsToggle = document.querySelector('#homeTagsToggle');
 const tagsPanel = document.querySelector('#homeTagsPanel');
 const tagsSearch = document.querySelector('#homeTagSearch');
@@ -14,7 +12,6 @@ const tagsMore = document.querySelector('#homeTagsMore');
 
 const state = { query: '', sort: 'recent', tags: [], shownTags: 100, tagsLoaded: false, tagsLoading: false };
 const TAG_PAGE_SIZE = 100;
-const POPULAR_TAGS_COUNT = 18;
 
 function safeUrl(value) {
   try {
@@ -49,7 +46,6 @@ function parseDelimitedCsv(text, delimiter = ';') {
     } else field += char;
   }
   if (field || row.length) { row.push(field); if (row.some((value) => value.trim())) rows.push(row); }
-  rows.forEach((cells) => { if (cells.length) cells[0] = cells[0].replace(/^\uFEFF/, ''); });
   return rows;
 }
 
@@ -67,36 +63,6 @@ function normalizeUrlKey(value) {
 function rowUrl(row, preferredIndex) {
   const preferred = String(row?.[preferredIndex] || '').trim();
   return /^https?:\/\//i.test(preferred) ? preferred : String(row?.find?.((value) => /^https?:\/\//i.test(String(value || ''))) || '').trim();
-}
-
-function goToTag(tag) {
-  if (!state.tags.some((item) => item.tag === tag)) return;
-  window.location.assign(`/catalog/?tag=${encodeURIComponent(tag)}`);
-}
-
-function renderPopularTags() {
-  const topTags = [...state.tags]
-    .sort((a, b) => b.videoCount - a.videoCount || a.tag.localeCompare(b.tag, 'pt-BR', { sensitivity: 'base' }))
-    .slice(0, POPULAR_TAGS_COUNT);
-  const fragment = document.createDocumentFragment();
-  topTags.forEach((item) => {
-    const button = document.createElement('button');
-    button.className = 'category-chip';
-    button.type = 'button';
-    button.dataset.popularTag = item.tag;
-    button.setAttribute('aria-label', `${item.tag}, ${item.videoCount.toLocaleString('pt-BR')} vídeos`);
-    const name = document.createElement('span'); name.className = 'category-chip-name'; name.textContent = item.tag;
-    const count = document.createElement('span'); count.className = 'category-chip-count'; count.textContent = item.videoCount.toLocaleString('pt-BR');
-    button.append(name, count);
-    fragment.append(button);
-  });
-  if (!topTags.length) {
-    const message = document.createElement('p');
-    message.className = 'tags-placeholder';
-    message.textContent = 'As tags populares aparecerão quando os CSVs oficiais estiverem disponíveis.';
-    fragment.append(message);
-  }
-  popularTags.replaceChildren(fragment);
 }
 
 function renderTags() {
@@ -125,7 +91,7 @@ function renderTags() {
   tagsMore.textContent = `Carregar mais tags (${Math.max(0, matches.length - visible.length).toLocaleString('pt-BR')})`;
   tagsStatus.textContent = query
     ? `${visible.length.toLocaleString('pt-BR')} de ${matches.length.toLocaleString('pt-BR')} tags encontradas nos CSVs oficiais.`
-    : `${state.tags.length.toLocaleString('pt-BR')} tags oficiais; categorias ordenadas por frequência.`;
+    : `${state.tags.length.toLocaleString('pt-BR')} tags encontradas nos CSVs oficiais.`;
 }
 
 async function loadOfficialTags() {
@@ -170,16 +136,11 @@ async function loadOfficialTags() {
     }
     state.tags = [...tagCounts.values()].sort((a, b) => a.tag.localeCompare(b.tag, 'pt-BR', { sensitivity: 'base' }));
     state.tagsLoaded = true;
-    const count = tagsToggle.querySelector('.tag-count');
-    count.textContent = state.tags.length.toLocaleString('pt-BR');
-    count.hidden = false;
-    renderPopularTags();
+    tagsToggle.querySelector('.tag-count').textContent = state.tags.length.toLocaleString('pt-BR');
+    tagsToggle.querySelector('.tag-count').hidden = false;
     renderTags();
-    console.info(`[FILTROX] ${state.tags.length.toLocaleString('pt-BR')} tags oficiais carregadas; remoções aplicadas.`);
-  } catch (error) {
-    popularTags.innerHTML = '<p class="tags-placeholder">Não foi possível carregar as tags oficiais agora.</p>';
-    tagsStatus.textContent = 'Não foi possível carregar os CSVs oficiais. Confira a conexão e tente novamente.';
-    console.warn('[FILTROX] Falha ao carregar as tags oficiais.', error?.name || 'erro');
+  } catch {
+    tagsStatus.textContent = 'Não foi possível carregar os CSVs oficiais. Confira a conexão e tente abrir novamente.';
   } finally {
     state.tagsLoading = false;
   }
@@ -193,44 +154,29 @@ function render(items) {
     const image = imageUrl
       ? `<img class="result-thumb" src="${escapeHtml(imageUrl)}" alt="" loading="lazy" referrerpolicy="no-referrer" />`
       : '<div class="result-thumb result-thumb-empty" aria-hidden="true"></div>';
-    card.innerHTML = `${image}<div class="result-card-content"><h3>${escapeHtml(item.title)}</h3><p>${escapeHtml(item.duration || 'Duração não informada')}</p></div>`;
+    card.innerHTML = `${image}<div class="result-card-content"><h2>${escapeHtml(item.title)}</h2><p>${escapeHtml(item.duration || 'Duração não informada')}</p></div>`;
     const img = card.querySelector('img');
     if (img) {
       img.addEventListener('error', () => {
-        const fallback = safeUrl(item.thumb2);
-        if (fallback && img.src !== fallback) img.src = fallback;
+        if (item.thumb2 && img.src !== item.thumb2) img.src = safeUrl(item.thumb2);
         else img.replaceWith(Object.assign(document.createElement('div'), { className: 'result-thumb result-thumb-empty' }));
       });
     }
     return card;
   }));
   noResults.hidden = items.length > 0;
-  searchStatus.textContent = items.length
-    ? `${items.length.toLocaleString('pt-BR')} ${items.length === 1 ? 'resultado' : 'resultados'} encontrados.`
-    : 'Nenhum resultado encontrado para essa busca.';
 }
 
 async function loadCatalog() {
-  if (!state.query) {
-    resultGrid.replaceChildren();
-    noResults.hidden = true;
-    document.querySelector('#homeResults').hidden = true;
-    searchStatus.textContent = 'Digite um termo ou escolha uma tag para começar.';
-    return;
-  }
-  document.querySelector('#homeResults').hidden = false;
   resultGrid.setAttribute('aria-busy', 'true');
-  searchStatus.textContent = 'Buscando no catálogo…';
-  const params = new URLSearchParams({ sort: state.sort, q: state.query });
+  const params = new URLSearchParams({ sort: state.sort });
+  if (state.query) params.set('q', state.query);
   try {
     const response = await fetch(`/api/catalog?${params.toString()}`, { cache: 'no-store' });
     const payload = await response.json();
-    if (!response.ok) throw new Error(payload.error || 'Busca indisponível.');
-    render(Array.isArray(payload.items) ? payload.items : []);
+    render(response.ok && Array.isArray(payload.items) ? payload.items : []);
   } catch {
-    resultGrid.replaceChildren();
-    noResults.hidden = true;
-    searchStatus.textContent = 'A busca está temporariamente indisponível. Tente novamente em instantes.';
+    render([]);
   } finally {
     resultGrid.removeAttribute('aria-busy');
   }
@@ -244,7 +190,7 @@ filterButtons.forEach((button) => {
       item.classList.toggle('is-active', active);
       item.setAttribute('aria-pressed', String(active));
     });
-    if (state.query) void loadCatalog();
+    void loadCatalog();
   });
 });
 
@@ -252,7 +198,6 @@ searchForm.addEventListener('submit', (event) => {
   event.preventDefault();
   state.query = searchInput.value.trim();
   void loadCatalog();
-  if (state.query) document.querySelector('#homeResults').scrollIntoView({ behavior: 'smooth', block: 'start' });
 });
 
 tagsToggle.addEventListener('click', () => {
@@ -266,11 +211,10 @@ tagsSearch.addEventListener('input', () => { state.shownTags = TAG_PAGE_SIZE; if
 tagsMore.addEventListener('click', () => { state.shownTags += TAG_PAGE_SIZE; renderTags(); });
 tagsResults.addEventListener('click', (event) => {
   const button = event.target.closest('[data-official-tag]');
-  if (button) goToTag(button.dataset.officialTag);
-});
-popularTags.addEventListener('click', (event) => {
-  const button = event.target.closest('[data-popular-tag]');
-  if (button) goToTag(button.dataset.popularTag);
+  if (!button) return;
+  const tag = button.dataset.officialTag;
+  if (!state.tags.some((item) => item.tag === tag)) return;
+  window.location.assign(`/catalog/?tag=${encodeURIComponent(tag)}`);
 });
 
-void loadOfficialTags();
+void loadCatalog();

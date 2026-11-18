@@ -1,16 +1,16 @@
 # FILTROX — Cinema after dark
 
-Site FILTROX com homepage de busca por catálogo e tags oficiais, catálogo editorial preservado em rota própria e busca federada PeerTube em rota separada. A homepage usa a identidade oficial preta/vermelha FILTROX.
+Site estático FILTROX com busca federada PeerTube como página inicial e um catálogo audiovisual editorial preservado em rota própria. O layout da busca segue o template de referência fornecido, usando a marca oficial do projeto.
 
 ## Páginas
 
 | Rota | Conteúdo |
 | --- | --- |
-| `/` | Homepage FILTROX, categorias dinâmicas derivadas das tags oficiais, busca no endpoint `/api/catalog` e acesso à lista completa de tags. |
-| `/rota-search/` | Busca federada SepiaSearch; exige confirmação declaratória de 18 anos e autorização explícita antes de enviar cada termo. |
+| `/` | Busca federada SepiaSearch; exige confirmação declaratória de 18 anos e autorização explícita antes de enviar cada termo. |
+| `/rota-search/` | Alias compatível da mesma busca. |
 | `/catalog/` | Catálogo editorial anterior, alimentado pelos CSVs do Azure Blob. |
 
-A homepage e a busca federada mantêm acessos ao catálogo. O catálogo preserva pesquisa, coleções, ordenação, favoritos e reprodução de prévia original.
+A navegação da busca inclui acesso ao catálogo. O catálogo mantém seus recursos de pesquisa, coleções, ordenação, favoritos e reprodução de prévia original.
 
 ## Executar localmente
 
@@ -24,9 +24,8 @@ Abra `http://localhost:3000`. Para usar outra porta, defina `PORT` antes de inic
 
 ## Estrutura principal
 
-- `public/index.html` — homepage FILTROX de busca e tags, com marca, hero e controles acessíveis.
-- `public/home.js` e `public/home.css` — tags oficiais, busca no endpoint do catálogo e layout responsivo da homepage.
-- `public/rota-search/` — cliente SepiaSearch, age gate, consentimentos, filtros, cartões e estilos responsivos.
+- `public/index.html` — homepage de busca, age gate, aviso de privacidade e formulário com consentimentos.
+- `public/rota-search/` — cliente SepiaSearch, filtros, cartões de vídeo e estilos responsivos; a homepage e o alias compartilham esses arquivos.
 - `public/catalog/index.html` — página do catálogo editorial preservada.
 - `public/app.js` — carga dos CSVs do catálogo, remoções, pesquisa, filtros, favoritos e cartões.
 - `public/data-config.js` — URLs, delimitadores e índices das colunas dos CSVs do Azure.
@@ -35,10 +34,6 @@ Abra `http://localhost:3000`. Para usar outra porta, defina `PORT` antes de inic
 - `public/manus-routes.json` — manifesto das rotas `/`, `/catalog/` e `/rota-search/`.
 - `server.js` — servidor estático local em Node.js.
 - `TODO.md` — entregas concluídas e pendências operacionais.
-
-## Homepage e tags
-
-A página `/` usa fundo preto, acentos vermelhos e a marca FILTROX. As categorias populares são calculadas em tempo de execução exclusivamente da coluna `tags` da base CSV, depois de cruzar e excluir as URLs do CSV de remoções. Os chips mostram tags ordenadas por frequência e levam a `/catalog/` com filtro exato; **Ver todas as tags** abre a lista completa pesquisável e paginada. A busca textual só é enviada ao endpoint `/api/catalog` após submissão do formulário, evitando carregar todos os resultados ao abrir a homepage. O endpoint recebe `q` e `sort` e lê o CSV pelo caminho ou URL configurado no servidor.
 
 ## Busca federada
 
@@ -54,7 +49,7 @@ O SepiaSearch recebe a consulta. Ao autorizar miniaturas, abrir o player ou segu
 
 `/catalog/` busca em paralelo `xvideos_up.csv` (base) e `xvideos_remove.csv` (lista de remoções), usando PapaParse. Os arquivos não têm cabeçalho: a base usa `;` e a URL está na primeira coluna por padrão; a lista de remoções usa `|` e a URL está na segunda coluna por padrão. Esses índices e delimitadores são configuráveis em `public/data-config.js`. As URLs são normalizadas para cruzamento e vídeos presentes na lista de remoções são ocultados antes da renderização.
 
-As chamadas usam `fetch(..., {cache: 'no-store'})`. A leitura direta pelo navegador depende de CORS para a origem publicada e de SAS de leitura válidos; como `data-config.js` é entregue ao navegador, as URLs SAS ficam visíveis, portanto devem ser apenas de leitura e restritas aos blobs necessários. Os SAS atualmente versionados expiraram em `2026-11-17T10:23:54Z` (remoções) e `2026-11-17T10:24:37Z` (base); novos SAS e CORS para o domínio publicado são necessários para carregar os CSVs. O catálogo editorial mantém os dados filtrados em memória e renderiza 48 cartões por página.
+As duas chamadas usam `fetch(..., {cache: 'no-store'})` para impedir o reaproveitamento de uma cópia antiga pelo cache do navegador. A leitura direta pelo navegador ainda depende de CORS configurado para as origens publicadas e de SAS de leitura válidos nos blobs. Como `data-config.js` é entregue ao navegador, as URLs SAS ficam visíveis; restrinja-as a leitura e blobs necessários e não inclua o token completo em documentação, logs ou exemplos. Renove as credenciais antes do prazo de expiração. O catálogo atual mantém os dados filtrados em memória e renderiza 48 cartões por página; uma API com paginação no servidor é a evolução indicada caso o volume aumente significativamente.
 
 O arquivo local `data/videos.csv` é ignorado pelo Git. Mantenha arquivos de produção grandes no Blob Storage; `data/videos.sample.csv` serve apenas como amostra local.
 

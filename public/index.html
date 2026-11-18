@@ -3,95 +3,48 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <meta name="theme-color" content="#090909" />
-    <meta name="description" content="FILTROX — descubra vídeos por busca e tags oficiais do catálogo." />
+    <meta name="theme-color" content="#f5f5f0" />
+    <meta name="description" content="FILTROX — busca limpa e descoberta de vídeos." />
     <link rel="icon" href="/assets/filtrox-mark.svg" type="image/svg+xml" />
-    <link rel="preconnect" href="https://fonts.googleapis.com" />
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-    <link href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=DM+Sans:wght@400;500;600;700&display=swap" rel="stylesheet" />
     <link rel="stylesheet" href="/home.css" />
     <script src="/data-config.js" defer></script>
     <script src="/home.js" defer></script>
-    <title>FILTROX — Explore por tags</title>
+    <title>FILTROX</title>
   </head>
   <body>
-    <header class="topbar">
-      <a class="brand" href="/" aria-label="FILTROX, início">
-        <img class="brand-mark" src="/assets/filtrox-mark.svg" alt="" />
-        <span class="brand-word">FILTRO<span>X</span><small>EXPLORE SEM LIMITES</small></span>
-      </a>
-      <nav class="sort-nav" aria-label="Ordenar os resultados">
-        <button class="sort-button is-active" type="button" data-filter="recent" aria-pressed="true">Mais recentes</button>
-        <button class="sort-button" type="button" data-filter="watched" aria-pressed="false">Mais assistidos</button>
-        <button class="sort-button" type="button" data-filter="commented" aria-pressed="false">Mais comentados</button>
-        <button class="sort-button" type="button" data-filter="rated" aria-pressed="false">Melhor avaliados</button>
-      </nav>
-      <div class="age-badge" aria-label="Conteúdo para maiores de 18 anos"><span>18+</span><small>ADULTO</small></div>
-    </header>
-
-    <main id="inicio">
-      <section class="hero" aria-labelledby="heroTitle">
-        <div class="hero-glow" aria-hidden="true"></div>
-        <div class="hero-orbit hero-orbit-one" aria-hidden="true"></div>
-        <div class="hero-orbit hero-orbit-two" aria-hidden="true"></div>
-        <div class="hero-copy">
-          <p class="hero-kicker"><span></span> FILTROX · CATÁLOGO OFICIAL</p>
-          <div class="hero-logo" aria-hidden="true">
-            <img src="/assets/filtrox-mark.svg" alt="" />
-            <span>FILTRO<span>X</span></span>
-          </div>
-          <h1 id="heroTitle">Explore por <em>tags.</em></h1>
-          <p class="hero-description">Encontre exatamente o que procura — ou deixe a próxima descoberta encontrar você.</p>
-          <form class="search-form" id="homeSearch" role="search">
-            <label class="sr-only" for="homeSearchInput">Buscar vídeos, temas e criadores</label>
-            <span class="search-icon" aria-hidden="true"></span>
-            <input id="homeSearchInput" name="q" type="search" placeholder="Buscar vídeos, temas e criadores…" autocomplete="off" />
-            <kbd aria-hidden="true">/</kbd>
-            <button class="search-submit" type="submit">Buscar</button>
-          </form>
-          <p class="search-hint" id="homeSearchStatus" aria-live="polite">Digite um termo ou escolha uma tag para começar.</p>
-        </div>
-        <div class="hero-index" aria-hidden="true"><span>F</span> / <b>01</b></div>
-        <div class="hero-bottom" aria-hidden="true"><span>DESCOBERTA · FILTROX</span><span>01 — 04</span></div>
-      </section>
-
-      <section class="categories-section" aria-labelledby="categoriesTitle">
-        <div class="section-heading">
-          <div>
-            <p class="section-kicker">EXPLORE O CATÁLOGO <span>·</span> TAGS OFICIAIS</p>
-            <h2 id="categoriesTitle">Categorias <em>populares</em></h2>
-          </div>
-          <button class="all-tags-toggle" id="homeTagsToggle" type="button" aria-expanded="false" aria-controls="homeTagsPanel">
-            <span>Ver todas as tags</span><span class="tag-count" hidden></span><span class="arrow" aria-hidden="true">↗</span>
+    <div class="home-shell">
+      <aside class="sidebar" aria-label="Filtros">
+        <nav class="filter-list" aria-label="Ordenar vídeos">
+          <button class="filter-button is-active" type="button" data-filter="recent" aria-pressed="true">Mais recente</button>
+          <button class="filter-button" type="button" data-filter="watched" aria-pressed="false">Mais assistido</button>
+          <button class="filter-button" type="button" data-filter="commented" aria-pressed="false">Mais comentado</button>
+          <button class="filter-button" type="button" data-filter="rated" aria-pressed="false">Melhor avaliado</button>
+        </nav>
+        <section class="tag-browser" aria-label="Tags oficiais do catálogo">
+          <button class="tag-toggle" id="homeTagsToggle" type="button" aria-expanded="false" aria-controls="homeTagsPanel">
+            <span>Todas as tags</span><span class="tag-count" id="homeTagsCount" hidden></span><span class="tag-chevron" aria-hidden="true">⌄</span>
           </button>
-        </div>
-        <div class="popular-tags" id="homePopularTags" aria-label="Categorias populares baseadas nas tags do CSV">
-          <p class="tags-placeholder">Carregando tags oficiais do catálogo…</p>
-        </div>
-        <p class="tag-status" id="homeTagStatus" aria-live="polite">As categorias serão carregadas da coluna de tags dos CSVs oficiais.</p>
-        <div class="tag-panel" id="homeTagsPanel" hidden>
-          <div class="tag-panel-heading">
-            <div><p class="section-kicker">CATÁLOGO FILTROX</p><h3>Todas as <em>tags.</em></h3></div>
-            <label class="tag-search-wrap"><span class="sr-only">Filtrar tags oficiais</span><input class="tag-search" id="homeTagSearch" type="search" placeholder="Filtrar tags…" autocomplete="off" /></label>
+          <div class="tag-panel" id="homeTagsPanel" hidden>
+            <label class="sr-only" for="homeTagSearch">Filtrar tags oficiais</label>
+            <input class="tag-search" id="homeTagSearch" type="search" placeholder="Filtrar tags…" autocomplete="off" />
+            <p class="tag-status" id="homeTagStatus" aria-live="polite">Tags lidas dos CSVs oficiais ao abrir esta seção.</p>
+            <div class="tag-results" id="homeTagResults" role="list" aria-label="Tags do CSV oficial"></div>
+            <button class="tag-load-more" id="homeTagsMore" type="button" hidden>Carregar mais tags</button>
           </div>
-          <div class="tag-results" id="homeTagResults" role="list" aria-label="Tags do CSV oficial"></div>
-          <button class="tag-load-more" id="homeTagsMore" type="button" hidden>Carregar mais tags</button>
-        </div>
-      </section>
+        </section>
+      </aside>
 
-      <section class="search-results" id="homeResults" aria-label="Resultados da busca" aria-live="polite" hidden>
-        <div class="results-heading">
-          <div><p class="section-kicker">FILTROX · BUSCA</p><h2>Resultados <em>da busca.</em></h2></div>
-        </div>
-        <div class="result-grid" id="homeResultGrid"></div>
-        <p class="no-results" id="homeNoResults" hidden>Nenhum resultado encontrado para essa busca.</p>
-      </section>
-    </main>
-
-    <footer class="site-footer">
-      <a class="footer-brand" href="/">FILTRO<span>X</span></a>
-      <p>Descoberta por tags oficiais do catálogo.</p>
-      <span class="footer-age">18+</span>
-    </footer>
+      <main class="main-content">
+        <form class="search-form" id="homeSearch" role="search">
+          <label class="sr-only" for="homeSearchInput">Buscar</label>
+          <input id="homeSearchInput" name="q" type="search" placeholder="Buscar" autocomplete="off" />
+          <button class="search-submit" type="submit" aria-label="Buscar">↵</button>
+        </form>
+        <section class="search-results" aria-label="Resultados" aria-live="polite">
+          <div class="result-grid" id="homeResultGrid"></div>
+          <p class="no-results" id="homeNoResults" hidden>Nenhum resultado encontrado</p>
+        </section>
+      </main>
+    </div>
   </body>
 </html>
