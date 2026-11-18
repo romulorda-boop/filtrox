@@ -65,13 +65,13 @@
 ## Pendências operacionais
 
 - [ ] **Configurar e verificar as App Settings do servidor**
-  - Criar `CATALOG_CSV_URL` e `CATALOG_REMOVAL_CSV_URL` em Azure Static Web Apps Configuration / Application settings, ou usar referências seguras do Key Vault. Não exibir os valores ao consultar ou validar a configuração.
+  - Criar `CATALOG_CSV_URL` e `CATALOG_REMOVAL_CSV_URL` em Azure Static Web Apps > Settings > Environment variables. As APIs gerenciadas do Static Web Apps não dão suporte a referências do Key Vault. Não exibir os valores ao consultar ou validar a configuração.
   - O código já não aceita URLs no corpo do request; sem as duas variáveis, o API deve falhar com HTTP 503 genérico sem registrar os valores.
-- [ ] **Conferir a configuração de produção após revisão**
-  - O Azure CLI não está disponível neste ambiente, então as App Settings de produção não foram alteradas. Defina as duas variáveis no ambiente server-side antes de uma publicação futura; não as coloque em variáveis de build do frontend.
-- [ ] **Revisar o checklist e a validação da origem publicada**
-  - Os testes locais passaram; a origem publicada em `main` ainda retorna HTTP 404 em `/api/catalog`. Não fazer commit, push, merge ou deploy nesta etapa.
-  - Depois da revisão e de uma publicação futura autorizada, confirmar HTTP 200, busca, tags, remoções e paginação na origem real.
+- [ ] **Verificar as configurações no Azure após aprovação do checklist**
+  - As variáveis de produção não foram consultadas nem alteradas. Confirme `CATALOG_CSV_URL` e `CATALOG_REMOVAL_CSV_URL` no ambiente Production do backend; não as coloque em variáveis de build do frontend. Verifique também o ambiente de preview se for validar PRs.
+- [ ] **Validar a origem publicada após uma publicação autorizada**
+  - `colab1` agora inclui runtime `node:22`, validação do pacote API no workflow e resposta `405` para `GET /api/catalog`; o fluxo de busca permanece em `POST` com gate 18+.
+  - Testes locais sintéticos passaram sem acessar os CSVs reais ou os SAS. Não houve push, merge ou deploy; após aprovação, valide `POST /api/catalog` e a busca, tags, remoções e paginação na origem real. Um `GET` direto deve retornar `405`, não `404`.
 - [x] **Preservar o filtro de remoções sem inspecionar o conteúdo dos CSVs**
   - O backend continua cruzando a lista oficial de remoções antes de busca, tags, contagens e paginação. A remoção é coberta por fixture sintética; não analisar nem cruzar os arquivos reais nesta etapa.
 - [x] **Gate 18+ antes da busca e do catálogo**
