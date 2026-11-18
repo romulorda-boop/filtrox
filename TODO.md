@@ -1,5 +1,42 @@
 # TODO — FILTROX
 
+## Detalhes de vídeo e prévias condicionais
+- [x] Adicionar ficha acessível e responsiva com título, fonte, duração, tags, idioma/país e, quando existentes, visualizações e data do modelo. Não criar metadados ausentes.
+- [x] Preparar prévia somente a partir do campo explícito `preview_url`, com HTTPS, host Xvideos permitido, sem credenciais e apenas porta padrão/443. O player só monta após ação explícita, inicia mutado e sem controles de áudio; não reutiliza URL da página ou miniatura como vídeo.
+- [x] Fixtures e testes locais cobrem os metadados existentes e a validação de URLs sem tráfego externo. O parser ativo não emite `preview_url`, `thumbnail_url` ou `image_url`; portanto, a prévia permanece indisponível no catálogo atual.
+- [ ] Antes de habilitar uma prévia em instância real, confirmar que a fonte autorizada fornece um campo/URL curta de prévia e autoriza sua reprodução; só então estender o parser e testar com dados sintéticos. Pornhub continua desligado; XNXX requer coleta autorizada.
+
+## Filtros multi-tag e facetas
+- [x] Inclusão com AND/OR configurável; AND continua sendo o padrão, e exclusões permanecem como “qualquer tag excluída bloqueia”.
+- [x] Agrupar tags de fontes distintas somente quando o texto for idêntico; contar vídeos distintos no conjunto completo de resultados, não ocorrências nem apenas a página visível.
+- [x] Manter idiomas como faceta separada; nenhuma tradução ou equivalência é inferida/aplicada automaticamente. A ação “Limpar tudo” reinicia termo, filtros e paginação.
+- [x] Cobertura sintética de modos, contagens, agrupamento exato e grafias que diferem por caixa; validação local do backend e do frontend.
+
+## Integração local de infraestrutura — Meilisearch
+- [x] **Adicionar Meilisearch ao caminho de busca do backend**
+  - Indexar somente IDs e fingerprints HMAC dos tokens gerados a partir de título/tags; nunca enviar URLs, texto integral, credenciais ou dados de conta ao índice.
+  - Manter busca estrita, frases, exclusões, equivalências, filtros, facetas, ordenação e paginação no validador Python existente.
+  - Aplicar remoções antes da indexação; sincronizar alterações removendo documentos anteriores e indexando apenas o catálogo autorizado atual.
+  - Limitar o índice a 10.000 candidatos por consulta; quando o teto puder truncar resultados, executar a busca exata completa localmente.
+  - Evidência: testes sintéticos com `httpx.MockTransport`; nenhum Meilisearch real, CSV real, Azure ou serviço externo foi acessado.
+- [ ] **Validar operação real e coordenação de índice antes de homologar**
+  - Testar o serviço local com catálogo sintético autorizado e validar reconstrução, paginação, erros, latência e recuperação após reinício.
+  - O lock de sincronização atual é por processo; antes de usar mais de um worker, adicionar lock distribuído ou estratégia de troca atômica de índices.
+  - Não configurar nem publicar em hospedagem pública nesta etapa.
+
+## Persistência PostgreSQL — histórico e favoritos
+- [x] Modelos de saída tipados e repositório de histórico/favoritos mantêm a chave do admin em todas as queries; as APIs pessoais usam somente `Principal.actor_id`, nunca um ID de conta do cliente.
+- [x] Exportação autenticada do histórico e dos favoritos em CSV e JSON, com leitura integral por `actor_id`, campos permitidos explícitos e defesa contra fórmulas em CSV; a interface oferece os quatro downloads.
+- [ ] A exportação depende de PostgreSQL provisionado e migrações aplicadas; o banco ainda não foi provisionado. Validar os downloads somente após infraestrutura aprovada, sem testar conexão real nesta etapa.
+- [x] Executor explícito e versionado para `backend/sql/001_init.sql`, com ledger, transação por migração, lock concorrente, idempotência e recusa de schema existente sem baseline versionado. Não roda no startup.
+- [x] Testes de armazenamento e rotas pessoais usam pool/conexão simulados e dados sintéticos; confirmado que login continua sem signup e sessão permanece deslizante de 30 dias.
+- [x] Substituir retenção no servidor por backup manual local: o admin autenticado aciona `GET /v1/admin/backups/download`; `pg_dump` passa diretamente por `age` em pipes e o navegador recebe somente o arquivo criptografado. Não há staging em claro, arquivo de backup no host, diretório dedicado, retenção, cron, scheduler ou cópia automática.
+- [x] Exigir `FILTROX_BACKUP_AGE_RECIPIENT` (somente chave pública) e manter a identidade privada sob controle local do proprietário; credencial PostgreSQL fica em passfile anônimo em memória, sem `PGPASSWORD`; `age`/`pg_dump` somente em caminhos de sistema confiáveis root-owned. Testes sintéticos com processos simulados confirmam o fluxo e a falha fechada.
+- [x] Manter restauração explicitamente bloqueada: ainda não há fluxo compatível para receber backup local, usar chave local e entregar/salvar um backup criptografado pré-restauração no destino local antes de qualquer alteração. Nenhuma flag pode reativá-la.
+- [ ] Nenhuma hospedagem foi escolhida. Antes de usar o download real, aprovar/provisionar infraestrutura privada, configurar `DATABASE_URL` com `sslmode=verify-full`, instalar `age` e `pg_dump` em `/usr/bin` ou `/bin` com propriedade/permissões seguras, gerar/guardar a identidade privada local e configurar somente o destinatário público no backend. Se o DSN tiver senha, o Linux precisa de `memfd_create` e `/proc/self/fd`. Não criar cópias de backup no servidor nem configurar agendamento. Revisar baseline se houver schema existente e só então aplicar migrações em ambiente aprovado.
+- [ ] Antes de permitir restauração, implementar e testar um fluxo de arquivo local com confirmação explícita e cópia pré-restauração criptografada baixada/guardada localmente; sem isso, manter bloqueada.
+- Evidência desta etapa: 93 testes Python e compilação Python passaram; 7 testes frontend, typecheck TypeScript e `git diff --check` passaram. Não houve conexão PostgreSQL, migração, execução de binário real de banco/age, build Next.js, scheduler, leitura de `.env.local`/segredos ou acesso aos CSVs reais.
+
 ## Entregas concluídas
 
 - [x] **Catálogo editorial responsivo e marca original**
