@@ -7,10 +7,10 @@
   - Evidência: catálogo preservado em `/catalog/`; marca FiltroX oficial presente em menus e rodapé.
 
 - [x] **CSV do catálogo carregados do Azure e lista de remoções aplicada**
-  - Carregar `xvideos_up.csv` e `xvideos_remove.csv` por URLs configuráveis em `public/data-config.js`.
+  - Carregar `xvideos_up.csv` e `xvideos_remove.csv` usando exclusivamente `CATALOG_CSV_URL` e `CATALOG_REMOVAL_CSV_URL` do ambiente do servidor.
   - Interpretar base sem cabeçalho, separada por `;`, e lista de remoções sem cabeçalho, separada por `|`; usar a URL para cruzar registros, normalizando host e barras finais.
   - Ocultar vídeos presentes na lista de remoções antes da pesquisa, filtros, contagem e paginação do catálogo.
-  - Evidência: o carregador atual faz ambas as leituras em paralelo, registra resumo sem imprimir URLs SAS e remove correspondências antes de renderizar.
+  - Evidência: o carregador server-side faz ambas as leituras em paralelo; os clientes não escolhem nem recebem URLs SAS.
 
 - [x] **Busca federada como homepage e identidade do template**
   - Usar `/` como página inicial do portal de busca; conservar `/rota-search/` como alias e preservar o antigo catálogo em `/catalog/`.
@@ -30,9 +30,9 @@
   - Oferecer filtros locais de duração (< 5 min, 5–20 min, > 20 min) e qualidade, busca rápida de tags, contagem, limpeza de filtros, paginação e thumbnails `loading="lazy"`.
   - Evidência: implementado em `public/rota-search/`; filtros refinam os resultados já carregados sem outra chamada à API.
 
-- [x] **Leitura fresca dos CSVs no navegador**
-  - Fazer fetch da base e da lista de remoções com `cache: 'no-store'`, para não reutilizar cópias antigas mantidas no cache HTTP do navegador.
-  - Evidência: teste de integração simulado confirmou `no-store` nas duas requisições; após acrescentar uma remoção ao fixture e recarregar, o vídeo foi removido da busca. O teste não acessa os blobs reais.
+- [x] **Leitura server-side fresca dos CSVs**
+  - Fazer fetch da base e da lista de remoções no servidor; evitar chamadas do navegador aos blobs.
+  - Evidência: smoke test Chromium confirmou zero chamadas browser→Blob antes e depois do gate; as respostas do API usam `Cache-Control: no-store`.
 
 - [x] **Atualização recente de `main` e publicação**
   - Homepage/template, logos e rota `/catalog/` enviados no commit `0db1c15` (`feat: align FiltroX homepage with template`).
@@ -57,21 +57,39 @@
   - Evidência: busca manual por título/elenco seguiu ativa; Playwright confirmou abertura do menu e ausência de overflow horizontal em viewport de 390 px.
 
 - [x] **Homepage `/` — lista oficial de tags no menu lateral**
-  - Gerar a lista dinamicamente exclusivamente a partir da coluna `tags` do CSV oficial e excluir vídeos presentes no CSV oficial de remoções; carregar ambos os CSVs com `cache: no-store`.
+  - Gerar a lista dinamicamente exclusivamente a partir da coluna `tags` do CSV oficial e excluir vídeos presentes no CSV oficial de remoções, processados pelo servidor.
   - Disponibilizar busca dentro da lista e carregamento incremental; não inventar tags ou contagens.
   - Selecionar uma tag deve abrir `/catalog/` com filtro exato e preservar a busca existente.
-  - Evidência: Playwright confirmou tags derivadas das duas fontes CSV, exclusão de vídeos removidos, filtragem da lista e carregamento do segundo lote; selecionar `0-pussy` abriu `/catalog/?tag=0-pussy` e exibiu apenas dois vídeos correspondentes. Viewport mobile de 390 px e desktop sem overflow horizontal.
+  - Evidência atual: gate inicial fica visível, a homepage permanece oculta e não chama o API até a confirmação; após o clique, busca, tags e paginação carregam pela mesma origem. Fixtures também confirmam que uma correspondência na lista de remoções é excluída.
 
 ## Pendências operacionais
 
-- [ ] **Confirmar CORS na origem publicada e renovar os SAS**
-  - Validar no navegador da origem Azure Static Web Apps que os blobs aceitam CORS para `GET`.
-  - Renovar os SAS de leitura antes da expiração indicada na configuração: remoções em `2026-11-17T10:23:54Z` e base em `2026-11-17T10:24:37Z`. Não registrar os tokens completos neste arquivo.
+- [ ] **Configurar e verificar as App Settings do servidor**
+  - Criar `CATALOG_CSV_URL` e `CATALOG_REMOVAL_CSV_URL` em Azure Static Web Apps Configuration / Application settings, ou usar referências seguras do Key Vault. Não exibir os valores ao consultar ou validar a configuração.
+  - O código já não aceita URLs no corpo do request; sem as duas variáveis, o API deve falhar com HTTP 503 genérico sem registrar os valores.
+- [ ] **Conferir a configuração de produção após revisão**
+  - O Azure CLI não está disponível neste ambiente, então as App Settings de produção não foram alteradas. Defina as duas variáveis no ambiente server-side antes de uma publicação futura; não as coloque em variáveis de build do frontend.
+- [ ] **Revisar o checklist e a validação da origem publicada**
+  - Os testes locais passaram; a origem publicada em `main` ainda retorna HTTP 404 em `/api/catalog`. Não fazer commit, push, merge ou deploy nesta etapa.
+  - Depois da revisão e de uma publicação futura autorizada, confirmar HTTP 200, busca, tags, remoções e paginação na origem real.
+- [x] **Preservar o filtro de remoções sem inspecionar o conteúdo dos CSVs**
+  - O backend continua cruzando a lista oficial de remoções antes de busca, tags, contagens e paginação. A remoção é coberta por fixture sintética; não analisar nem cruzar os arquivos reais nesta etapa.
+- [x] **Gate 18+ antes da busca e do catálogo**
+  - `/` e `/catalog/` agora ocultam a interface e não fazem chamadas à API até a confirmação declaratória; `/rota-search/` já tinha gate. A API retorna HTTP 403 sem `ageConfirmed: true`.
+  - A confirmação é declaratória, não verifica idade e não é persistida; não é controle de acesso forte. Os SAS agora permanecem somente no servidor.
+- [x] **Remover dependência de CORS do Blob nas rotas do catálogo**
+  - `/` e `/catalog/` consultam `/api/catalog`; o smoke test confirmou zero chamadas browser→Blob antes e depois do gate.
+- [x] **Remover SAS de arquivos públicos**
+  - `public/data-config.js` contém apenas delimitadores e índices; os requests do navegador não enviam SAS e as respostas não os devolvem.
+  - Evidência: varredura em `public/` encontrou zero padrões SAS/URLs de Blob; diretórios de build/log não existem e não há script de build local. Smoke test confirmou configuração e corpos dos requests sem SAS, nenhuma chamada do navegador ao Blob e resposta sem URL de origem; falha simulada não vazou o marcador SAS nos logs/resposta.
 
 ## Comandos de verificação
 
 ```bash
 node --check public/app.js
+node --check public/home.js
+node --check api/catalog/catalog.js
+node --check api/catalog/index.js
 node --check public/rota-search/app.js
 node --check public/rota-search/api.js
 node --check public/rota-search/filters.js

@@ -1,6 +1,7 @@
 let videos = [];
 let featuredVideoId = null;
 let catalogStats = {base:0,removals:0,hidden:0,remaining:0};
+let catalogAgeConfirmed = false;
 
 const PAGE_SIZE = 48;
 const state = {category:'Todos',nav:'inicio',query:'',tagFilter:'',sort:'featured',favorites:new Set(readFavorites()),showAll:false,page:1,current:null,playing:false,elapsed:0,raf:0,toastTimer:0};
@@ -11,6 +12,11 @@ const playerWrap = $('#playerWrap');
 const canvas = $('#previewCanvas');
 const ctx = canvas.getContext('2d');
 const duration = 24;
+const catalogAgeGate = $('#catalogAgeGate');
+const catalogApp = $('#catalogApp');
+const confirmCatalogAge = $('#catalogConfirmAge');
+const denyCatalogAge = $('#catalogDenyAge');
+const catalogAgeDenied = $('#catalogAgeDenied');
 
 function readFavorites(){try{return JSON.parse(localStorage.getItem('filtrox-favorites')||localStorage.getItem('velvet-favorites')||'[]')}catch{return []}}
 function saveFavorites(){try{localStorage.setItem('filtrox-favorites',JSON.stringify([...state.favorites]))}catch{}}
@@ -138,46 +144,30 @@ function showCatalogLoadError(error,sourceUrl){
   $('#loadMore').hidden=true;
 }
 async function loadVideos(){
+  if(!catalogAgeConfirmed)return;
   const config=window.FILTROX_CONFIG||{};
-  const baseUrl=config.baseCsvUrl||'';
-  const removalUrl=config.removalCsvUrl||'';
-  if(!window.Papa){showCatalogLoadError(new Error('PapaParse indisponível.'),baseUrl||location.href);return}
-  if(!baseUrl||!removalUrl){showCatalogLoadError(new Error('URLs dos dois CSVs não configuradas.'),baseUrl||location.href);return}
   try{
-    const [baseResponse,removalResponse]=await Promise.all([fetch(baseUrl,{cache:'no-store'}),fetch(removalUrl,{cache:'no-store'})]);
-    if(!baseResponse.ok)throw new Error(`base HTTP ${baseResponse.status}`);
-    if(!removalResponse.ok)throw new Error(`remoções HTTP ${removalResponse.status}`);
-    const [baseText,removalText]=await Promise.all([baseResponse.text(),removalResponse.text()]);
-    const baseRows=parseCsvRows(baseText,config.baseDelimiter||';','base');
-    const removalRows=parseCsvRows(removalText,config.removalDelimiter||'|','remoções');
-    const baseColumn=Number.isInteger(config.baseUrlColumn)?config.baseUrlColumn:0;
-    const removalColumn=Number.isInteger(config.removalUrlColumn)?config.removalUrlColumn:1;
-    const removalKeys=new Set(removalRows.map(row=>normalizeUrlKey(rowUrl(row,removalColumn))).filter(Boolean));
-    if(!baseRows.length||!removalKeys.size)throw new Error('CSV base ou lista de remoções vazia/inválida.');
-    const seen=new Set();
-    let hidden=0;
-    videos=[];
-    for(let index=0;index<baseRows.length;index++){
-      const row=baseRows[index];
-      if(index===0&&String(row[baseColumn]||'').trim().toLowerCase()===String(config.keyField||'url').toLowerCase())continue;
-      const url=rowUrl(row,baseColumn);
-      const key=normalizeUrlKey(url);
-      if(!key)continue;
-      if(removalKeys.has(key)){hidden++;continue}
-      if(seen.has(key))continue;
-      seen.add(key);
-      const video=normalizeVideo(row,index,url);
-      video.ordinal=videos.length+1;
-      videos.push(video);
-    }
-    catalogStats={base:baseRows.length,removals:removalKeys.size,hidden,remaining:videos.length};
+    const response=await fetch('/api/catalog',{method:'POST',headers:{'Content-Type':'application/json'},cache:'no-store',body:JSON.stringify({mode:'all',ageConfirmed:catalogAgeConfirmed})});
+    if(!response.ok)throw new Error(`API HTTP ${response.status}`);
+    const payload=await response.json();
+    if(!Array.isArray(payload.items))throw new Error('Resposta inválida da API do catálogo.');
+    const columns=config.baseColumns||{};
+    videos=payload.items.map((item,index)=>{
+      const row=[];
+      const values={title:item.title,duration:item.duration,tags:Array.isArray(item.tags)?item.tags.join('|'):'',cast:item.cast,publisher:item.publisher,category:item.category,uploadedAt:item.date,quality:item.quality,views:item.views};
+      for(const [name,value] of Object.entries(values)){const column=columns[name];if(Number.isInteger(column))row[column]=value??''}
+      const video=normalizeVideo(row,index,item.url);
+      video.ordinal=index+1;
+      return video;
+    }).filter(video=>isHttpUrl(video.url));
+    catalogStats=payload.stats||{base:0,removals:0,hidden:0,remaining:videos.length};
     if(!videos.length)throw new Error('Nenhum registro restante após cruzar as remoções.');
     updateFeaturedVideo(videos[0]);
     renderCategoryFilters();
     renderTagList();
     console.info(`[FILTROX] base=${catalogStats.base}; remoções=${catalogStats.removals}; ocultados=${catalogStats.hidden}; exibidos=${catalogStats.remaining}.`);
     render();
-  }catch(error){showCatalogLoadError(error,baseUrl)}
+  }catch(error){showCatalogLoadError(error,`${location.origin}/api/catalog`)}
 }
 function visibleVideos(){
   let items=[...videos];
@@ -338,4 +328,6 @@ state.tagFilter=initialTag;
 state.query=initialParams.get('q')?.trim()||initialTag;
 $('#searchInput').value=state.query;
 if(initialTag){$('#crumbTitle').textContent=`TAG · ${initialTag.toLocaleUpperCase('pt-BR')}`;$('#sectionKicker').textContent='TAG OFICIAL · CSV DO CATÁLOGO';$('#sectionTitle').textContent=initialTag;$('#hero').hidden=true}
-loadVideos();drawPreview(0);
+confirmCatalogAge.addEventListener('click',()=>{catalogAgeConfirmed=true;catalogAgeGate.hidden=true;catalogApp.hidden=false;$('#searchInput').focus();void loadVideos();drawPreview(0)});
+denyCatalogAge.addEventListener('click',()=>{catalogAgeDenied.hidden=false;confirmCatalogAge.disabled=true});
+confirmCatalogAge.focus();

@@ -12,7 +12,21 @@
     <title>FILTROX</title>
   </head>
   <body>
-    <div class="home-shell">
+    <div class="home-age-gate" id="homeAgeGate" role="dialog" aria-modal="true" aria-labelledby="homeAgeTitle" aria-describedby="homeAgeDescription">
+      <section class="home-age-card">
+        <div class="home-age-brand">FILTROX <span>18+</span></div>
+        <p class="home-age-kicker">ACESSO RESTRITO</p>
+        <h1 id="homeAgeTitle">Confirmação de idade</h1>
+        <p id="homeAgeDescription">Este site apresenta referências a vídeos e assuntos destinados a adultos. Você precisa ter 18 anos ou mais para continuar.</p>
+        <p class="home-age-note">A confirmação é declaratória e não é armazenada.</p>
+        <div class="home-age-actions">
+          <button class="home-age-continue" id="homeConfirmAge" type="button">Tenho 18 anos ou mais</button>
+          <button class="home-age-decline" id="homeDenyAge" type="button">Tenho menos de 18 anos</button>
+        </div>
+        <p class="home-age-denied" id="homeAgeDenied" role="status" hidden>O acesso está bloqueado. Feche esta página.</p>
+      </section>
+    </div>
+    <div class="home-shell" id="homeApp" hidden>
       <aside class="sidebar" aria-label="Filtros">
         <nav class="filter-list" aria-label="Ordenar vídeos">
           <button class="filter-button is-active" type="button" data-filter="recent" aria-pressed="true">Mais recente</button>
@@ -41,8 +55,10 @@
           <button class="search-submit" type="submit" aria-label="Buscar">↵</button>
         </form>
         <section class="search-results" aria-label="Resultados" aria-live="polite">
+          <p class="result-summary" id="homeResultSummary" aria-live="polite"></p>
           <div class="result-grid" id="homeResultGrid"></div>
           <p class="no-results" id="homeNoResults" hidden>Nenhum resultado encontrado</p>
+          <button class="result-load-more" id="homeLoadMore" type="button" hidden>Carregar mais resultados</button>
         </section>
       </main>
     </div>
