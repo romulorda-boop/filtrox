@@ -4,12 +4,21 @@ import asyncio
 import os
 from typing import Any, Literal
 
-from fastapi import Depends, FastAPI, Header, HTTPException, Request
+from fastapi import Depends, FastAPI, HTTPException, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse, Response
 from pydantic import BaseModel, ConfigDict, Field
 
-from .auth import AuthFailure, Principal, verify_bearer_token
+from .auth import (
+    SESSION_COOKIE_NAME,
+    AuthFailure,
+    Principal,
+    cookie_secure_enabled,
+    create_session_token,
+    refresh_session_token,
+    verify_credentials,
+    verify_session_token,
+)
 from .catalog import CatalogUnavailable, load_catalog
 from .search import search_catalog
 from .storage import StorageUnavailable, clear_history, close_pool, list_favorites, list_history, record_play, set_favorite, watched_ids
@@ -17,7 +26,7 @@ from .storage import StorageUnavailable, clear_history, close_pool, list_favorit
 
 app = FastAPI(
     title="FILTROX API",
-    version="0.1.0-local",
+    version="0.2.0-local",
     docs_url=None,
     redoc_url=None,
     openapi_url=None,
@@ -30,9 +39,9 @@ if cors_origins:
     app.add_middleware(
         CORSMiddleware,
         allow_origins=cors_origins,
-        allow_methods=["GET", "POST", "DELETE"],
-        allow_headers=["Authorization", "Content-Type"],
-        allow_credentials=False,
+        allow_methods=["GET", "POST", "DELETE", "OPTIONS"],
+        allow_headers=["Content-Type"],
+        allow_credentials=True,
     )
 
 
@@ -76,11 +85,57 @@ class FavoriteMutation(VideoMutation):
     enabled: bool
 
 
-async def current_principal(authorization: str | None = Header(default=None)) -> Principal:
-    try:
-        return await asyncio.to_thread(verify_bearer_token, authorization)
-    except AuthFailure as error:
-        raise HTTPException(status_code=error.status_code, detail=error.public_message) from None
+class LoginRequest(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+    email: str = Field(min_length=3, max_length=254)
+    password: str = Field(min_length=1, max_length=1024)
+
+
+@app.middleware("http")
+async def private_access_and_headers(request: Request, call_next):
+    # Only the explicit login and logout handlers are public. There is intentionally no signup route.
+    public_auth_routes = {("POST", "/auth/login"), ("POST", "/auth/logout")}
+    session_token = request.cookies.get(SESSION_COOKIE_NAME)
+    if (request.method.upper(), request.url.path) not in public_auth_routes:
+        try:
+            principal = await asyncio.to_thread(verify_session_token, session_token)
+        except AuthFailure as error:
+            response = JSONResponse(status_code=error.status_code, content={"detail": error.public_message})
+            response.headers["Cache-Control"] = "no-store, private, max-age=0"
+            response.headers["Pragma"] = "no-cache"
+            response.headers["X-Content-Type-Options"] = "nosniff"
+            response.headers["Referrer-Policy"] = "no-referrer"
+            response.headers["X-Frame-Options"] = "DENY"
+            response.headers["Permissions-Policy"] = "camera=(), microphone=(), geolocation=()"
+            return response
+        request.state.principal = principal
+
+    response = await call_next(request)
+    if (request.method.upper(), request.url.path) not in public_auth_routes:
+        refreshed_token, ttl, secure = await asyncio.to_thread(refresh_session_token, session_token)
+        response.set_cookie(
+            key=SESSION_COOKIE_NAME,
+            value=refreshed_token,
+            max_age=ttl,
+            path="/",
+            secure=secure,
+            httponly=True,
+            samesite="strict",
+        )
+    response.headers["Cache-Control"] = "no-store, private, max-age=0"
+    response.headers["Pragma"] = "no-cache"
+    response.headers["X-Content-Type-Options"] = "nosniff"
+    response.headers["Referrer-Policy"] = "no-referrer"
+    response.headers["X-Frame-Options"] = "DENY"
+    response.headers["Permissions-Policy"] = "camera=(), microphone=(), geolocation=()"
+    return response
+
+
+def current_principal(request: Request) -> Principal:
+    principal = getattr(request.state, "principal", None)
+    if not isinstance(principal, Principal):
+        raise HTTPException(status_code=401, detail="Autenticação necessária.")
+    return principal
 
 
 def _safe_video_url(raw: str, source: str) -> str:
@@ -103,18 +158,6 @@ async def _require_catalog_item(video_id: str, url: str, source: str) -> None:
         raise HTTPException(status_code=404, detail="O item não pertence ao catálogo autorizado atual.")
 
 
-@app.middleware("http")
-async def private_headers(request: Request, call_next):
-    response = await call_next(request)
-    response.headers["Cache-Control"] = "no-store, private, max-age=0"
-    response.headers["Pragma"] = "no-cache"
-    response.headers["X-Content-Type-Options"] = "nosniff"
-    response.headers["Referrer-Policy"] = "no-referrer"
-    response.headers["X-Frame-Options"] = "DENY"
-    response.headers["Permissions-Policy"] = "camera=(), microphone=(), geolocation=()"
-    return response
-
-
 @app.exception_handler(CatalogUnavailable)
 async def catalog_unavailable(_request: Request, _error: CatalogUnavailable):
     return JSONResponse(status_code=503, content={"error": "Catálogo autorizado indisponível."})
@@ -125,8 +168,46 @@ async def storage_unavailable(_request: Request, _error: StorageUnavailable):
     return JSONResponse(status_code=503, content={"error": "Armazenamento privado indisponível."})
 
 
+@app.post("/auth/login")
+async def login(body: LoginRequest) -> Response:
+    try:
+        await asyncio.to_thread(verify_credentials, body.email, body.password)
+        token, ttl, secure = create_session_token()
+    except AuthFailure as error:
+        response = JSONResponse(status_code=error.status_code, content={"detail": error.public_message})
+        response.headers["Cache-Control"] = "no-store, private, max-age=0"
+        return response
+
+    response = JSONResponse({"authenticated": True})
+    response.set_cookie(
+        key=SESSION_COOKIE_NAME,
+        value=token,
+        max_age=ttl,
+        path="/",
+        secure=secure,
+        httponly=True,
+        samesite="strict",
+    )
+    response.headers["Cache-Control"] = "no-store, private, max-age=0"
+    return response
+
+
+@app.post("/auth/logout")
+async def logout() -> Response:
+    response = JSONResponse({"authenticated": False})
+    response.delete_cookie(
+        key=SESSION_COOKIE_NAME,
+        path="/",
+        secure=cookie_secure_enabled(),
+        httponly=True,
+        samesite="strict",
+    )
+    response.headers["Cache-Control"] = "no-store, private, max-age=0"
+    return response
+
+
 @app.get("/healthz")
-async def healthz() -> dict[str, str]:
+async def healthz(_principal: Principal = Depends(current_principal)) -> dict[str, str]:
     return {"status": "ok", "mode": "local-prototype"}
 
 
@@ -159,8 +240,8 @@ async def add_to_my_history(body: VideoMutation, principal: Principal = Depends(
 
 
 @app.delete("/v1/me/history", status_code=204)
-async def delete_my_history(principal: Principal = Depends(current_principal)) -> Response:
-    await clear_history(principal.actor_id)
+async def delete_my_history(_principal: Principal = Depends(current_principal)) -> Response:
+    await clear_history(_principal.actor_id)
     return Response(status_code=204)
 
 

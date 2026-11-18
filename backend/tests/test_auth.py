@@ -1,65 +1,99 @@
 import os
+import time
 import unittest
 from unittest.mock import patch
 
-from app.auth import AuthFailure, _verify_age_assurance, verify_bearer_token
+from app.auth import (
+    AuthFailure,
+    SESSION_IDLE_TTL_SECONDS,
+    create_session_token,
+    hash_password,
+    refresh_session_token,
+    verify_credentials,
+    verify_session_token,
+)
+
+
+TEST_PASSWORD = "synthetic-test-password"
+TEST_CONFIG = {
+    "FILTROX_ENVIRONMENT": "development",
+    "FILTROX_LOGIN_EMAIL": "Owner@Test.Example",
+    "FILTROX_LOGIN_PASSWORD_HASH": hash_password(
+        TEST_PASSWORD, iterations=100_000, salt=b"synthetic-salt-123"
+    ),
+    "FILTROX_SESSION_SECRET": "synthetic-session-secret-for-unit-tests-only-32-bytes",
+    "FILTROX_COOKIE_SECURE": "false",
+}
 
 
 class AuthTests(unittest.TestCase):
-    def test_missing_provider_fails_closed_before_catalog_access(self):
+    def test_missing_server_credentials_fail_closed(self):
         keys = [
-            "OIDC_ISSUER", "OIDC_AUDIENCE", "OIDC_JWKS_URL", "AGE_ASSURANCE_CLAIM",
-            "AGE_ASSURANCE_VALUE", "AGE_ASSURANCE_TIMESTAMP_CLAIM", "AGE_ASSURANCE_MAX_AGE_SECONDS",
-            "FILTROX_ALLOWED_SUBJECTS",
+            "FILTROX_LOGIN_EMAIL",
+            "FILTROX_LOGIN_PASSWORD_HASH",
+            "FILTROX_SESSION_SECRET",
         ]
         with patch.dict(os.environ, {key: "" for key in keys}):
             with self.assertRaises(AuthFailure) as caught:
-                verify_bearer_token(None)
+                verify_credentials("owner@test.example", TEST_PASSWORD)
         self.assertEqual(caught.exception.status_code, 503)
 
-    def test_unconfigured_age_assurance_never_accepts_a_declarative_token(self):
-        keys = [
-            "OIDC_ISSUER", "OIDC_AUDIENCE", "OIDC_JWKS_URL", "AGE_ASSURANCE_CLAIM",
-            "AGE_ASSURANCE_VALUE", "AGE_ASSURANCE_TIMESTAMP_CLAIM", "AGE_ASSURANCE_MAX_AGE_SECONDS",
-            "FILTROX_ALLOWED_SUBJECTS",
-        ]
-        configured = {
-            "OIDC_ISSUER": "https://identity.example.invalid",
-            "OIDC_AUDIENCE": "filtrox-local",
-            "OIDC_JWKS_URL": "https://identity.example.invalid/jwks",
-            "AGE_ASSURANCE_CLAIM": "age_over_18",
-            "AGE_ASSURANCE_VALUE": "true",
-            "AGE_ASSURANCE_TIMESTAMP_CLAIM": "age_verified_at",
-            "AGE_ASSURANCE_MAX_AGE_SECONDS": "86400",
-            "FILTROX_ALLOWED_SUBJECTS": "owner-subject",
-        }
-        with patch.dict(os.environ, configured):
+    def test_one_configured_email_authenticates_case_insensitively_without_signup(self):
+        with patch.dict(os.environ, TEST_CONFIG):
+            principal = verify_credentials(" owner@test.example ", TEST_PASSWORD)
+            self.assertEqual(len(principal.actor_id), 64)
             with self.assertRaises(AuthFailure) as caught:
-                verify_bearer_token("Bearer ageConfirmed=true")
+                verify_credentials("another@example.test", TEST_PASSWORD)
         self.assertEqual(caught.exception.status_code, 401)
 
-    def test_age_assurance_requires_fresh_signed_timestamp(self):
-        config = {
-            "age_claim": "age_over_18",
-            "age_value": "true",
-            "age_timestamp_claim": "age_verified_at",
-            "age_max_age_seconds": "3600",
-        }
-        _verify_age_assurance({"age_over_18": True, "age_verified_at": 99_000}, config, now=100_000)
-        for timestamp in (90_000, 100_031, "not-a-time", None, float("nan"), float("inf")):
-            with self.subTest(timestamp=timestamp), self.assertRaises(AuthFailure) as caught:
-                _verify_age_assurance({"age_over_18": True, "age_verified_at": timestamp}, config, now=100_000)
-            self.assertEqual(caught.exception.status_code, 403)
+    def test_password_hash_requires_sufficient_length_and_uses_salt(self):
+        with self.assertRaises(ValueError):
+            hash_password("short")
+        first = hash_password(TEST_PASSWORD, iterations=100_000, salt=b"salt-one-12345678")
+        second = hash_password(TEST_PASSWORD, iterations=100_000, salt=b"salt-two-12345678")
+        self.assertNotEqual(first, second)
 
-    def test_age_assurance_max_age_configuration_is_bounded(self):
-        config = {
-            "age_claim": "age_over_18",
-            "age_value": "true",
-            "age_timestamp_claim": "age_verified_at",
-            "age_max_age_seconds": "999999999",
-        }
-        with self.assertRaises(AuthFailure) as caught:
-            _verify_age_assurance({"age_over_18": True, "age_verified_at": 99_999}, config, now=100_000)
+    def test_session_expires_after_30_idle_days_and_activity_extends_deadline(self):
+        with patch.dict(os.environ, TEST_CONFIG):
+            token, ttl, secure = create_session_token()
+            principal = verify_session_token(token)
+            self.assertEqual(len(principal.actor_id), 64)
+            self.assertEqual(ttl, SESSION_IDLE_TTL_SECONDS)
+            self.assertFalse(secure)
+
+            issued_at = int(time.time())
+            with self.assertRaises(AuthFailure) as expired:
+                verify_session_token(token, now=issued_at + ttl + 1)
+            self.assertEqual(expired.exception.status_code, 401)
+
+            refreshed_at = issued_at + 60
+            refreshed, refreshed_ttl, refreshed_secure = refresh_session_token(token, now=refreshed_at)
+            self.assertEqual(refreshed_ttl, SESSION_IDLE_TTL_SECONDS)
+            self.assertFalse(refreshed_secure)
+            self.assertEqual(
+                len(verify_session_token(refreshed, now=refreshed_at + ttl - 1).actor_id),
+                64,
+            )
+            with self.assertRaises(AuthFailure):
+                verify_session_token(refreshed, now=refreshed_at + ttl)
+
+            encoded_payload, signature = token.split(".", 1)
+            changed_first_char = "A" if signature[0] != "A" else "B"
+            tampered = f"{encoded_payload}.{changed_first_char}{signature[1:]}"
+            with self.assertRaises(AuthFailure) as invalid:
+                verify_session_token(tampered)
+            self.assertEqual(invalid.exception.status_code, 401)
+
+    def test_session_secret_must_be_configured_and_long_enough(self):
+        with patch.dict(os.environ, {**TEST_CONFIG, "FILTROX_SESSION_SECRET": "short"}):
+            with self.assertRaises(AuthFailure) as caught:
+                create_session_token()
+        self.assertEqual(caught.exception.status_code, 503)
+
+    def test_production_requires_secure_cookie(self):
+        with patch.dict(os.environ, {**TEST_CONFIG, "FILTROX_ENVIRONMENT": "production", "FILTROX_COOKIE_SECURE": "false"}):
+            with self.assertRaises(AuthFailure) as caught:
+                create_session_token()
         self.assertEqual(caught.exception.status_code, 503)
 
 

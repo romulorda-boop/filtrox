@@ -80,10 +80,9 @@ const initialCriteria: Criteria = {
   includeTags: [], excludeTags: [], language: '', country: '', hideWatched: false, sort: 'recent', sortSecondary: '',
 };
 
-const apiBase = (process.env.NEXT_PUBLIC_API_BASE_URL ?? '').trim().replace(/\/$/, '');
-// Deliberately closed until the owner selects an OIDC + age-assurance provider and its
-// client adapter is implemented. A public environment flag is not authentication.
-const ready = false;
+// This flag only controls UI behavior; the Next.js proxy and FastAPI validate the
+// server-signed session independently on every protected page/API request.
+const ready = true;
 
 function splitTerms(value: string): string[] {
   return value.split(/[\n,]+/).map((part) => part.trim()).filter(Boolean);
@@ -94,16 +93,20 @@ function splitPhrases(value: string): string[] {
 }
 
 function apiUrl(path: string): string {
-  return `${apiBase}${path}`;
+  return path;
 }
 
 async function request(path: string, init?: RequestInit): Promise<unknown> {
   const response = await fetch(apiUrl(path), {
     ...init,
     headers: { 'Content-Type': 'application/json', ...init?.headers },
-    // O cliente não mantém nem envia sessões via cookies.
-    credentials: 'omit',
+    credentials: 'same-origin',
+    cache: 'no-store',
   });
+  if (response.status === 401 && typeof window !== 'undefined') {
+    const next = `${window.location.pathname}${window.location.search}`;
+    window.location.replace(`/login?next=${encodeURIComponent(next)}`);
+  }
   if (!response.ok) {
     const body = await response.json().catch(() => null) as { message?: string; detail?: string } | null;
     throw new Error(body?.message || body?.detail || `Falha na API (${response.status}).`);

@@ -1,9 +1,9 @@
 'use client';
 
-import { useEffect, useMemo } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import {
   Bookmark, Check, ChevronLeft, ChevronRight, Clock3, Eye, Film, Filter, Heart,
-  History, LoaderCircle, Play, Search, ShieldAlert, SlidersHorizontal, Trash2, X,
+  History, LoaderCircle, LogOut, Play, Search, ShieldAlert, SlidersHorizontal, Trash2, X,
 } from 'lucide-react';
 import { CatalogItem, optionValue, useFILTROXStore } from '@/lib/store';
 
@@ -27,6 +27,7 @@ function termsInput(value: string, update: (value: string) => void, placeholder:
 }
 
 export default function HomePage() {
+  const [ageConfirmed, setAgeConfirmed] = useState(false);
   const configured = useFILTROXStore((state) => state.configured);
   const activeTab = useFILTROXStore((state) => state.activeTab);
   const criteria = useFILTROXStore((state) => state.criteria);
@@ -51,8 +52,8 @@ export default function HomePage() {
   const clearHistory = useFILTROXStore((state) => state.clearHistory);
 
   useEffect(() => {
-    if (configured) void searchCatalog(1);
-  }, [configured, searchCatalog]);
+    if (configured && ageConfirmed) void searchCatalog(1);
+  }, [ageConfirmed, configured, searchCatalog]);
 
   const items = activeTab === 'search' ? catalogItems : activeTab === 'history' ? historyItems : favoriteItems;
   const pageCount = Math.max(1, Math.ceil(total / Math.max(pageSize, 1)));
@@ -79,6 +80,11 @@ export default function HomePage() {
     }
   }
 
+  async function logout() {
+    await fetch('/auth/logout', { method: 'POST', credentials: 'same-origin', cache: 'no-store' }).catch(() => undefined);
+    window.location.assign('/login');
+  }
+
   function toggleTag(value: string, type: 'includeTags' | 'excludeTags') {
     const current = criteria[type];
     const next = current.includes(value) ? current.filter((tag) => tag !== value) : [...current, value];
@@ -88,11 +94,27 @@ export default function HomePage() {
 
   const selectedTabLabel = activeTab === 'search' ? 'resultados' : activeTab === 'history' ? 'histórico' : 'favoritos';
 
+  if (!ageConfirmed) {
+    return (
+      <main className="auth-shell">
+        <section className="auth-card age-card" aria-labelledby="age-title">
+          <a className="auth-brand" href="/" aria-label="FILTROX"><img src="/filtrox-mark.svg" alt="FILTROX" width="190" height="40" /></a>
+          <p className="auth-eyebrow">DECLARAÇÃO 18+</p>
+          <h1 id="age-title">Antes de continuar</h1>
+          <p className="auth-copy">Este espaço é destinado a pessoas com 18 anos ou mais.</p>
+          <p className="auth-footnote">Esta é uma declaração pessoal. Ela não verifica nem comprova sua idade e é separada do login e da senha.</p>
+          <button className="auth-submit" type="button" onClick={() => setAgeConfirmed(true)}>Declaro ter 18 anos ou mais — continuar</button>
+          <button className="auth-secondary" type="button" onClick={() => void logout()}><LogOut size={16} /> Sair</button>
+        </section>
+      </main>
+    );
+  }
+
   return (
     <main className="shell">
       <header className="topbar">
         <a className="brand" href="#inicio" aria-label="FILTROX início"><img src="/filtrox-mark.svg" alt="FILTROX" width="190" height="40" /></a>
-        <div className="topbar-right"><span className="status-dot" /> <span>Busca inteligente</span><span className="topbar-separator">·</span><span>v1</span></div>
+        <div className="topbar-right"><span className="status-dot" /> <span>Busca inteligente</span><button className="logout-button" type="button" onClick={() => void logout()} aria-label="Sair da conta"><LogOut size={15} /><span>Sair</span></button></div>
       </header>
 
       <section className="hero" id="inicio">
@@ -103,7 +125,7 @@ export default function HomePage() {
 
       {!configured && <section className="config-warning" role="status">
         <ShieldAlert size={19} aria-hidden="true" />
-        <div><strong>Provedor não configurado</strong><p>Busca, histórico e favoritos ficam vazios até configurar o backend e o provedor de login/verificação de idade. Nenhuma confirmação de maioridade é simulada.</p></div>
+        <div><strong>Catálogo indisponível</strong><p>Busca, histórico e favoritos ficam vazios até configurar o backend e o catálogo. A declaração 18+ continua independente do login e não verifica nem comprova idade.</p></div>
       </section>}
 
       <nav className="tabs" aria-label="Seções do catálogo">
@@ -161,7 +183,7 @@ export default function HomePage() {
 
         {loading && <div className="loading-state"><LoaderCircle className="spin" size={24} /><span>Carregando…</span></div>}
         {!loading && configured && items.length === 0 && <div className="empty-state"><span className="empty-icon"><Film size={24} /></span><h3>Nenhum item para mostrar</h3><p>{error ? 'Verifique a conexão com o backend e tente novamente.' : activeTab === 'search' ? 'Faça uma busca para consultar os itens fornecidos pelo catálogo.' : 'Os itens desta seção aparecem quando o serviço estiver conectado.'}</p></div>}
-        {!configured && <div className="empty-state"><span className="empty-icon"><ShieldAlert size={24} /></span><h3>Catálogo indisponível</h3><p>Configure o backend e a integração de login/verificação de idade para carregar conteúdo real.</p></div>}
+        {!configured && <div className="empty-state"><span className="empty-icon"><ShieldAlert size={24} /></span><h3>Catálogo indisponível</h3><p>Configure o backend e a fonte autorizada do catálogo para carregar conteúdo.</p></div>}
 
         {!loading && items.length > 0 && <div className="card-grid">{items.map((item) => {
           const id = String(item.id);
